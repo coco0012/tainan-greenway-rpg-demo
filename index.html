@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台南立體綠廊 空間與社會影響評估系統</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="gradient-text">台南立體綠廊可行性驗證儀表板</h1>
+                <p class="subtitle">Tainan Parkway Feasibility & Social Impact Assessment</p>
+            </div>
+            <div class="header-badges">
+                <span class="badge">Version 3.0.0</span>
+                <span class="badge badge-pulse">Live Simulation</span>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Left Column -->
+            <div class="col-left space-y">
+                <!-- Parameters Card -->
+                <section class="glass-card">
+                    <div class="card-header">
+                        <h2>⚙️ 環境參數設定 (Interactive Parameters)</h2>
+                    </div>
+                    <div class="card-body controls-grid">
+                        
+                        <div class="control-group">
+                            <label>評估區域</label>
+                            <select id="village-select" class="glass-input">
+                                <option value="東區 大學里 (民族-青年段)">東區 大學里 (民族-青年段)</option>
+                                <option value="中西區 城隍里 (青年-東門段)">中西區 城隍里 (青年-東門段)</option>
+                                <option value="中西區 郡王里 (東門-健康段)">中西區 郡王里 (東門-健康段)</option>
+                                <option value="東區 大同里 (健康-林森段)">東區 大同里 (健康-林森段)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label>發展情境 (Pro / Con)</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-scenario="pro">樂觀預期 (綠色溢價)</button>
+                                <button class="toggle-btn" data-scenario="con">悲觀預期 (景觀衝擊)</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group slider-group">
+                            <div class="label-row">
+                                <label>住宅距離廊道 (m)</label>
+                                <span class="value-display" id="dist-value">5.0m</span>
+                            </div>
+                            <input type="range" id="dist-slider" min="2" max="20" step="0.5" value="5">
+                        </div>
+
+                        <div class="control-group slider-group">
+                            <div class="label-row">
+                                <label>觀看樓層 (視線高度)</label>
+                                <span class="value-display" id="floor-value">2F (6.0m)</span>
+                            </div>
+                            <input type="range" id="floor-slider" min="0" max="3" step="1" value="1">
+                            <div class="slider-marks">
+                                <span>1F</span><span>2F</span><span>3F</span><span>4F</span>
+                            </div>
+                        </div>
+
+                        <div class="static-params">
+                            <div class="param-box">
+                                <span class="param-label">高架結構高度</span>
+                                <span class="param-val">橋面 6m / 頂棚 10m</span>
+                            </div>
+                            <div class="param-box">
+                                <span class="param-label">專用道寬度</span>
+                                <span class="param-val">6.0m</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Visualization Card -->
+                <section class="glass-card">
+                    <div class="card-header flex-between" style="flex-wrap: wrap; gap: 12px;">
+                        <h2>👁️ 空間視覺化 (Spatial Visualizer)</h2>
+                        <div class="toggle-group" id="view-mode-toggle" style="width: 200px;">
+                            <button class="toggle-btn active" data-mode="res">住宅視角</button>
+                            <button class="toggle-btn" data-mode="svf">行人 SVF</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="viz-canvas"></canvas>
+                        <div class="canvas-legend">
+                            <span class="legend-item"><span class="dot bldg"></span>住宅</span>
+                            <span class="legend-item"><span class="dot corridor"></span>高架綠廊</span>
+                            <span class="legend-item"><span class="line sight"></span>視線</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-right space-y">
+                <!-- Impact Scores -->
+                <div class="score-cards" id="res-scores">
+                    <div class="glass-card score-card">
+                        <p class="score-label">景觀壓迫感 (模擬)</p>
+                        <h3 class="score-value" id="oppression-score">0</h3>
+                        <div class="progress-track">
+                            <div class="progress-fill gradient-danger" id="oppression-bar"></div>
+                        </div>
+                    </div>
+                    <div class="glass-card score-card">
+                        <p class="score-label">隱私受視窗指數</p>
+                        <h3 class="score-value" id="privacy-score">0</h3>
+                        <div class="progress-track">
+                            <div class="progress-fill gradient-warning" id="privacy-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="score-cards" id="svf-scores" style="display: none;">
+                    <div class="glass-card score-card">
+                        <p class="score-label">天空遮蔽率 (Sky Blocked)</p>
+                        <h3 class="score-value" id="svf-score">0%</h3>
+                        <div class="progress-track">
+                            <div class="progress-fill gradient-danger" id="svf-bar"></div>
+                        </div>
+                    </div>
+                    <div class="glass-card score-card">
+                        <p class="score-label">地面視野壓縮度</p>
+                        <h3 class="score-value" id="compression-score">0%</h3>
+                        <div class="progress-track">
+                            <div class="progress-fill gradient-warning" id="compression-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Public Opinion Simulation -->
+                <section class="glass-card public-opinion-card">
+                    <div class="card-header">
+                        <h2>💬 民意模擬分析 (Public Acceptance)</h2>
+                        <div class="approval-rating">支持度: <span id="approval-value">60%</span></div>
+                    </div>
+                    <div class="opinion-content">
+                        <div class="opinion-bar-track">
+                            <div class="opinion-bar-fill support" id="support-bar"></div>
+                            <div class="opinion-bar-fill oppose" id="oppose-bar"></div>
+                        </div>
+                        <ul class="feedback-list" id="feedback-list">
+                            <!-- Simulated resident feedback will be injected here -->
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Housing Price Chart -->
+                <section class="glass-card chart-card flex-grow">
+                    <div class="card-header flex-between">
+                        <h2>📈 房價發展情境預測</h2>
+                        <div class="time-toggle">
+                            <button class="time-btn active" data-time="10">10年</button>
+                            <button class="time-btn" data-time="20">20年</button>
+                        </div>
+                    </div>
+                    <div class="impact-breakdown">
+                        <div class="impact-item">
+                            <span class="impact-label">區域基礎年增率</span>
+                            <span class="impact-val">+1.5%</span>
+                        </div>
+                        <div class="impact-item">
+                            <span class="impact-label">環境衝擊修正</span>
+                            <span class="impact-val highlight" id="env-impact-value">+0.0%</span>
+                        </div>
+                        <div class="impact-item total">
+                            <span class="impact-label">綜合預估年增率</span>
+                            <span class="impact-val" id="total-growth-value">1.5%</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="price-chart"></canvas>
+                    </div>
+                    <div class="analysis-box">
+                        <p id="analysis-text">目前參數處於平衡區間，環境品質對房價影響尚不明顯。</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
