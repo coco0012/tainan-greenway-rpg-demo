@@ -57,19 +57,19 @@ const ctx = els.canvas.getContext('2d');
 let priceChart;
 let resizeTimeout;
 
-// Resident Feedback Templates
+// Resident Feedback Templates (No Emojis)
 const feedbackTemplates = {
     pro: [
-        { type: 'pos', text: '綠園道蓋好後，下樓就可以騎單車，生活品質提升很多！', icon: '🚲' },
-        { type: 'pos', text: '頂棚設計很漂亮，且地面保留了植栽空間，感覺社區變明亮了。', icon: '✨' },
-        { type: 'pos', text: '對房價絕對是利多，綠色基礎設施是現代城市的指標。', icon: '📈' },
-        { type: 'neu', text: '希望政府能做好植栽維護，不然只有水泥體會很突兀。', icon: '🌳' }
+        { type: 'pos', text: '綠園道蓋好後，下樓就可以騎單車，生活品質提升很多。' },
+        { type: 'pos', text: '頂棚設計很漂亮，且地面保留了植栽空間，感覺社區變明亮了。' },
+        { type: 'pos', text: '對房價絕對是利多，綠色基礎設施是現代城市的指標。' },
+        { type: 'neu', text: '希望政府能做好植栽維護，不然只有水泥體會很突兀。' }
     ],
     con: [
-        { type: 'neg', text: '距離我家太近了！在6公尺橋上騎車的人完全可以看到我二樓房間！', icon: '👀' },
-        { type: 'neg', text: '10公尺高的頂棚龐然大物擋在前面，每天看著覺得很有壓迫感。', icon: '🏢' },
-        { type: 'neg', text: '這肯定會帶來噪音跟髒亂，房價一定會跌。', icon: '📉' },
-        { type: 'neu', text: '設計圖看起來不錯，但施工期的黑暗期讓人擔憂。', icon: '🚧' }
+        { type: 'neg', text: '距離我家太近了！在6公尺橋上騎車的人完全可以看到我二樓房間！' },
+        { type: 'neg', text: '10公尺高的頂棚龐然大物擋在前面，每天看著覺得很有壓迫感。' },
+        { type: 'neg', text: '這肯定會帶來噪音跟髒亂，房價一定會跌。' },
+        { type: 'neu', text: '設計圖看起來不錯，但施工期的黑暗期讓人擔憂。' }
     ]
 };
 
@@ -158,7 +158,7 @@ function resizeCanvas() {
 function drawPerson(ctx, x, y, scale) {
     const h = 1.7 * scale; // 1.7m height
     const w = 0.5 * scale; // 0.5m width
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = '#64748b'; // slate-500
     ctx.beginPath();
     ctx.arc(x, y - h + w/2, w/2, 0, Math.PI * 2);
     ctx.fill();
@@ -172,8 +172,8 @@ function drawTree(ctx, x, y, scale) {
     ctx.fillStyle = '#78350f'; // amber-900
     ctx.fillRect(x - trunkW/2, y - trunkH, trunkW, trunkH);
     
-    // Leaves
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.4)'; // emerald-500
+    // Leaves (Morandi Green)
+    ctx.fillStyle = 'rgba(124, 154, 143, 0.8)';
     ctx.beginPath();
     ctx.arc(x, y - trunkH - 1.5 * scale, 2.5 * scale, 0, Math.PI * 2);
     ctx.fill();
@@ -199,7 +199,7 @@ function drawViz() {
     const eyeY = groundY - eyeHeight * scale;
 
     // Grid & Ground
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.lineWidth = 1;
     for(let i=0; i<w; i+=scale) {
         ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
@@ -208,7 +208,7 @@ function drawViz() {
     ctx.beginPath();
     ctx.moveTo(0, groundY);
     ctx.lineTo(w, groundY);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -227,15 +227,15 @@ function drawViz() {
         const corrTopY = groundY - config.canopyHeight * scale;
         const a2 = Math.atan2(pedY - corrTopY, corrTopX - pedX); 
 
-        // Draw Sky Area 
-        ctx.fillStyle = 'rgba(14, 165, 233, 0.15)'; 
+        // Draw Sky Area (Light blue/gray)
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.15)'; 
         ctx.beginPath();
         ctx.moveTo(pedX, pedY);
         ctx.arc(pedX, pedY, 300, Math.PI + a1, -a2, false);
         ctx.fill();
 
-        // Draw Blocked Areas
-        ctx.fillStyle = 'rgba(244, 63, 94, 0.1)'; 
+        // Draw Blocked Areas (Soft red/rose)
+        ctx.fillStyle = 'rgba(225, 29, 72, 0.05)'; 
         ctx.beginPath();
         ctx.moveTo(pedX, pedY);
         ctx.arc(pedX, pedY, 300, -a2, 0, false);
@@ -248,21 +248,21 @@ function drawViz() {
 
         // Ray lines
         ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = '#0ea5e9';
+        ctx.strokeStyle = '#94a3b8';
         ctx.beginPath(); ctx.moveTo(pedX, pedY); ctx.lineTo(bldgTopX, bldgTopY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(pedX, pedY); ctx.lineTo(corrTopX, corrTopY); ctx.stroke();
         ctx.setLineDash([]);
         
         // Label
         ctx.font = '12px Inter';
-        ctx.fillStyle = '#0ea5e9';
+        ctx.fillStyle = '#64748b';
         ctx.fillText('可見天空範圍', pedX, pedY - 120);
     }
 
     // Building
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; // blue-500
+    ctx.fillStyle = 'rgba(100, 116, 139, 0.1)'; // slate-500 light
     ctx.fillRect(0, groundY - 15 * scale, bldgX, 15 * scale);
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = '#94a3b8'; // slate-400
     ctx.strokeRect(0, groundY - 15 * scale, bldgX, 15 * scale);
 
     // Corridor Structure
@@ -271,7 +271,7 @@ function drawViz() {
     const corrW = config.corridorWidth * scale;
     
     // Slanted Pillar
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.strokeStyle = '#94a3b8'; // slate-400
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(corridorX + corrW + 2*scale, groundY); // Base slightly to the right
@@ -279,18 +279,18 @@ function drawViz() {
     ctx.stroke();
     
     // Safety railings
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(corridorX, deckY); ctx.lineTo(corridorX, deckY - 1.2*scale); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(corridorX + corrW, deckY); ctx.lineTo(corridorX + corrW, deckY - 1.2*scale); ctx.stroke();
 
-    // Deck
-    ctx.fillStyle = '#10b981'; // emerald-500
+    // Deck (Morandi Green)
+    ctx.fillStyle = '#7c9a8f'; 
     ctx.fillRect(corridorX, deckY, corrW, 10);
     
-    // Canopy Roof (V Shape)
-    ctx.strokeStyle = '#34d399';
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.1)';
+    // Canopy Roof (V Shape - Morandi Green)
+    ctx.strokeStyle = '#7c9a8f';
+    ctx.fillStyle = 'rgba(124, 154, 143, 0.1)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(corridorX - scale, canopyY - 1.5*scale);
@@ -311,13 +311,13 @@ function drawViz() {
 
     if (state.viewMode === 'res') {
         // Residential Eye Point
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#1e293b';
         ctx.beginPath();
         ctx.arc(bldgX - 5, eyeY, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
         ctx.arc(bldgX - 5, eyeY, 8, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.stroke();
 
         // Line of sight
@@ -325,14 +325,14 @@ function drawViz() {
         ctx.beginPath();
         ctx.moveTo(bldgX - 5, eyeY);
         ctx.lineTo(corridorX + corrW/2, deckY - 1.5*scale); // Sight to cyclist face
-        ctx.strokeStyle = '#f43f5e'; // rose-500
+        ctx.strokeStyle = '#e11d48'; // rose-600
         ctx.stroke();
         ctx.setLineDash([]);
     }
     
     // Measurement Labels
     ctx.font = '10px monospace';
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#64748b'; // slate-500
     ctx.fillText(`${state.distance}m`, bldgX + (state.distance * scale)/2 - 10, groundY - 10);
     ctx.fillText('6m 寬', corridorX + corrW + 5, deckY + 15);
 }
@@ -438,17 +438,17 @@ function updateFeedbackList(approval, opp, priv, svf) {
     const showFeedback = [];
     
     if(priv > 60) {
-        showFeedback.push({ type: 'neg', text: `我家在${config.floorLabels[state.floorIndex]}，離走道才${state.distance}公尺，騎士高度跟我家一樣，隱私完全被看光！`, icon: '😡' });
+        showFeedback.push({ type: 'neg', text: `我家在${config.floorLabels[state.floorIndex]}，離走道才${state.distance}公尺，騎士高度跟我家一樣，隱私完全被看光。` });
     } else if(priv < 30 && state.scenario === 'pro') {
-        showFeedback.push({ type: 'pos', text: `這個距離剛剛好，且視角不會對到，不會互相干擾。`, icon: '👍' });
+        showFeedback.push({ type: 'pos', text: `這個距離剛剛好，且視角不會對到，不會互相干擾。` });
     } else {
         showFeedback.push(pool[Math.floor(Math.random() * pool.length)]);
     }
 
     if(state.viewMode === 'svf' && svf > 80) {
-        showFeedback.push({ type: 'neg', text: `10公尺高的頂棚把天空遮蔽了超過80%，走在一樓覺得像是在隧道裡，非常壓迫！`, icon: '☁️' });
+        showFeedback.push({ type: 'neg', text: `10公尺高的頂棚把天空遮蔽了超過80%，走在一樓覺得像是在隧道裡，非常壓迫。` });
     } else if (opp > 60) {
-        showFeedback.push({ type: 'neg', text: `那麼巨大的頂棚就在眼前，景觀超壓迫，房子絕對跌價！`, icon: '🏢' });
+        showFeedback.push({ type: 'neg', text: `那麼巨大的頂棚就在眼前，景觀感覺很壓迫，可能會影響區域發展。` });
     } else {
         showFeedback.push(pool[Math.floor(Math.random() * pool.length)]);
     }
@@ -458,7 +458,6 @@ function updateFeedbackList(approval, opp, priv, svf) {
     showFeedback.forEach(f => {
         html += `
             <li class="feedback-item ${f.type}">
-                <span class="feedback-icon">${f.icon}</span>
                 <span>${f.text}</span>
             </li>
         `;
@@ -470,7 +469,7 @@ function updateFeedbackList(approval, opp, priv, svf) {
 function updateAnalysisText(envImpact, combinedImpact, priv) {
     let text = "";
     if (envImpact > 0) {
-        text = `強勁的綠色溢價：距離與視角配置得宜，天空視野開闊，預期能享受最高環境紅利，長期具增值潛力。`;
+        text = `強勁的綠色溢價：距離與視角配置得宜，天空視野開闊，預期能享受較高環境紅利，長期具增值潛力。`;
     } else if (envImpact < -1.5) {
         text = `高度社會與空間阻力：`;
         if (combinedImpact > 75) text += `極大的視覺壓迫與天空遮蔽 `;
@@ -486,7 +485,7 @@ function updateAnalysisText(envImpact, combinedImpact, priv) {
 function initChart() {
     const chartCtx = document.getElementById('price-chart').getContext('2d');
     
-    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.color = '#64748b'; // slate-500
     Chart.defaults.font.family = "'Inter', 'Noto Sans TC', sans-serif";
     
     priceChart = new Chart(chartCtx, {
@@ -496,11 +495,11 @@ function initChart() {
             datasets: [{
                 label: '預測房價指數 (Base=100)',
                 data: [],
-                borderColor: '#0ea5e9',
-                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                borderColor: '#7c9a8f', // Morandi Green
+                backgroundColor: 'rgba(124, 154, 143, 0.1)',
                 borderWidth: 3,
-                pointBackgroundColor: '#0ea5e9',
-                pointBorderColor: '#fff',
+                pointBackgroundColor: '#7c9a8f',
+                pointBorderColor: '#ffffff',
                 pointBorderWidth: 2,
                 pointRadius: 4,
                 fill: true,
@@ -513,7 +512,11 @@ function initChart() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#1e293b',
+                    borderColor: 'rgba(0,0,0,0.1)',
+                    borderWidth: 1,
                     titleFont: { size: 14 },
                     bodyFont: { size: 14 },
                     padding: 12,
@@ -527,7 +530,7 @@ function initChart() {
             },
             scales: {
                 y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
                     beginAtZero: false
                 },
                 x: {
@@ -555,8 +558,8 @@ function updateChartData(growthRate) {
     
     // Dynamic color based on growth direction
     const isPositive = growthRate > config.baseGrowthRate;
-    const color = isPositive ? '#10b981' : (growthRate < 0 ? '#f43f5e' : '#0ea5e9');
-    const bgColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : (growthRate < 0 ? 'rgba(244, 63, 94, 0.1)' : 'rgba(14, 165, 233, 0.1)');
+    const color = isPositive ? '#7c9a8f' : (growthRate < 0 ? '#e11d48' : '#64748b');
+    const bgColor = isPositive ? 'rgba(124, 154, 143, 0.1)' : (growthRate < 0 ? 'rgba(225, 29, 72, 0.1)' : 'rgba(100, 116, 139, 0.1)');
     
     priceChart.data.datasets[0].borderColor = color;
     priceChart.data.datasets[0].pointBackgroundColor = color;
