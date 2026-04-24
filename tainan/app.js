@@ -1,20 +1,20 @@
 // State and Constants
 const config = {
-    floorHeights: [1.5, 6, 9, 12], // 1F to 4F
+    floorHeights: [1.5, 6, 9, 12], 
     floorLabels: ["1F (1.5m)", "2F (6.0m)", "3F (9.0m)", "4F (12.0m)"],
-    corridorHeight: 6, // Deck is at 6m
-    canopyHeight: 10, // Roof is at 10m
+    corridorHeight: 6, 
+    canopyHeight: 10, 
     corridorWidth: 6,
-    baseGrowthRate: 0.015 // 1.5% base annual growth
+    baseGrowthRate: 0.015 
 };
 
 let state = {
     village: "東區 大學里 (民族-青年段)",
     distance: 5,
     floorIndex: 1,
-    scenario: 'pro', // 'pro' or 'con'
-    forecastYears: 10, // 10 or 20
-    viewMode: 'res' // 'res' (Residential) or 'svf' (Pedestrian SVF)
+    scenario: 'pro', 
+    forecastYears: 10, 
+    viewMode: 'res' 
 };
 
 // DOM Elements
@@ -28,7 +28,8 @@ const els = {
     floorSlider: document.getElementById('floor-slider'),
     floorValue: document.getElementById('floor-value'),
     
-    canvas: document.getElementById('viz-canvas'),
+    canvas2d: document.getElementById('viz-canvas-2d'),
+    container3D: document.getElementById('3d-container'),
     
     resScores: document.getElementById('res-scores'),
     svfScores: document.getElementById('svf-scores'),
@@ -53,11 +54,6 @@ const els = {
     analysisText: document.getElementById('analysis-text')
 };
 
-const ctx = els.canvas.getContext('2d');
-let priceChart;
-let resizeTimeout;
-
-// Resident Feedback Templates (No Emojis)
 const feedbackTemplates = {
     pro: [
         { type: 'pos', text: '綠園道蓋好後，下樓就可以騎單車，生活品質提升很多。' },
@@ -73,14 +69,20 @@ const feedbackTemplates = {
     ]
 };
 
-// Initialization
+let priceChart;
+let ctx2d;
+let resizeTimeout;
+
+// Three.js Globals
+let scene, camera, renderer, controls;
+let corridorGroup, analysisGroup;
+
 function init() {
+    ctx2d = els.canvas2d.getContext('2d');
     initChart();
-    
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    
+    initThreeJS();
     attachEventListeners();
+    window.dispatchEvent(new Event('resize')); // initial resize trigger
     update();
 }
 
@@ -136,208 +138,501 @@ function attachEventListeners() {
         els.floorValue.textContent = config.floorLabels[state.floorIndex];
         update();
     });
+    
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Resize 2D
+            const parent2d = els.canvas2d.parentElement;
+            const w2d = parent2d.offsetWidth;
+            const h2d = parent2d.offsetHeight;
+            if (els.canvas2d.width !== w2d * window.devicePixelRatio || els.canvas2d.height !== h2d * window.devicePixelRatio) {
+                els.canvas2d.width = w2d * window.devicePixelRatio;
+                els.canvas2d.height = h2d * window.devicePixelRatio;
+                ctx2d.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+                drawViz2D();
+            }
+
+            // Resize 3D
+            if (camera && renderer) {
+                camera.aspect = els.container3D.offsetWidth / els.container3D.offsetHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(els.container3D.offsetWidth, els.container3D.offsetHeight);
+            }
+        }, 100);
+    });
 }
 
-// Canvas & Visualizer
-function resizeCanvas() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        const parent = els.canvas.parentElement;
-        const w = parent.offsetWidth;
-        const h = parent.offsetHeight;
-        
-        if (els.canvas.width !== w * window.devicePixelRatio || els.canvas.height !== h * window.devicePixelRatio) {
-            els.canvas.width = w * window.devicePixelRatio;
-            els.canvas.height = h * window.devicePixelRatio;
-            ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-            drawViz();
-        }
-    }, 100);
-}
-
+// ----------------------------------------------------
+// CANVAS 2D DRAWING LOGIC
+// ----------------------------------------------------
 function drawPerson(ctx, x, y, scale) {
-    const h = 1.7 * scale; // 1.7m height
-    const w = 0.5 * scale; // 0.5m width
-    ctx.fillStyle = '#64748b'; // slate-500
+    const h = 1.7 * scale;
+    const w = 0.5 * scale;
+    ctx.fillStyle = '#64748b'; 
     ctx.beginPath();
     ctx.arc(x, y - h + w/2, w/2, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(x - w/3, y - h + w, w/1.5, h - w);
 }
 
-function drawTree(ctx, x, y, scale) {
+function drawTree2D(ctx, x, y, scale) {
     const trunkW = 0.6 * scale;
     const trunkH = 2 * scale;
-    // Trunk
-    ctx.fillStyle = '#78350f'; // amber-900
+    ctx.fillStyle = '#78350f'; 
     ctx.fillRect(x - trunkW/2, y - trunkH, trunkW, trunkH);
     
-    // Leaves (Morandi Green)
     ctx.fillStyle = 'rgba(124, 154, 143, 0.8)';
-    ctx.beginPath();
-    ctx.arc(x, y - trunkH - 1.5 * scale, 2.5 * scale, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x - 1.5 * scale, y - trunkH - 0.5 * scale, 2 * scale, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + 1.5 * scale, y - trunkH - 0.5 * scale, 2 * scale, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y - trunkH - 1.5 * scale, 2.5 * scale, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x - 1.5 * scale, y - trunkH - 0.5 * scale, 2 * scale, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 1.5 * scale, y - trunkH - 0.5 * scale, 2 * scale, 0, Math.PI * 2); ctx.fill();
 }
 
-function drawViz() {
-    const w = els.canvas.width / window.devicePixelRatio;
-    const h = els.canvas.height / window.devicePixelRatio;
-    ctx.clearRect(0, 0, w, h);
+function drawViz2D() {
+    const w = els.canvas2d.width / window.devicePixelRatio;
+    const h = els.canvas2d.height / window.devicePixelRatio;
+    if(w === 0 || h === 0) return;
 
-    const scale = 12; // px per meter
+    ctx2d.clearRect(0, 0, w, h);
+
+    const scale = 12; 
     const groundY = h - 30;
     const bldgX = 50;
     const corridorX = bldgX + state.distance * scale;
-    
     const eyeHeight = config.floorHeights[state.floorIndex];
     const eyeY = groundY - eyeHeight * scale;
 
-    // Grid & Ground
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
-    ctx.lineWidth = 1;
+    ctx2d.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx2d.lineWidth = 1;
     for(let i=0; i<w; i+=scale) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+        ctx2d.beginPath(); ctx2d.moveTo(i, 0); ctx2d.lineTo(i, h); ctx2d.stroke();
     }
     
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    ctx.lineTo(w, groundY);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(0, groundY); ctx2d.lineTo(w, groundY);
+    ctx2d.strokeStyle = 'rgba(0, 0, 0, 0.2)'; ctx2d.lineWidth = 2; ctx2d.stroke();
 
-    // SVF Mode Rays (Background)
     if (state.viewMode === 'svf') {
-        const pedX = bldgX + 2.5 * scale;
-        const pedY = groundY - 1.7 * scale;
-        
-        // Angle to Building Top
-        const bldgTopX = bldgX;
-        const bldgTopY = groundY - 15 * scale;
+        const pedX = bldgX + 3 * scale;
+        const pedY = groundY - 1.6 * scale;
+        const bldgTopX = bldgX, bldgTopY = groundY - 15 * scale;
+        const corrTopX = corridorX, corrTopY = groundY - config.canopyHeight * scale;
         const a1 = Math.atan2(pedY - bldgTopY, pedX - bldgTopX); 
-        
-        // Angle to Canopy Top
-        const corrTopX = corridorX;
-        const corrTopY = groundY - config.canopyHeight * scale;
         const a2 = Math.atan2(pedY - corrTopY, corrTopX - pedX); 
 
-        // Draw Sky Area (Light blue/gray)
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.15)'; 
-        ctx.beginPath();
-        ctx.moveTo(pedX, pedY);
-        ctx.arc(pedX, pedY, 300, Math.PI + a1, -a2, false);
-        ctx.fill();
+        ctx2d.fillStyle = 'rgba(148, 163, 184, 0.15)'; 
+        ctx2d.beginPath(); ctx2d.moveTo(pedX, pedY); ctx2d.arc(pedX, pedY, 300, Math.PI + a1, -a2, false); ctx2d.fill();
 
-        // Draw Blocked Areas (Soft red/rose)
-        ctx.fillStyle = 'rgba(225, 29, 72, 0.05)'; 
-        ctx.beginPath();
-        ctx.moveTo(pedX, pedY);
-        ctx.arc(pedX, pedY, 300, -a2, 0, false);
-        ctx.fill();
+        ctx2d.fillStyle = 'rgba(225, 29, 72, 0.05)'; 
+        ctx2d.beginPath(); ctx2d.moveTo(pedX, pedY); ctx2d.arc(pedX, pedY, 300, -a2, 0, false); ctx2d.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(pedX, pedY);
-        ctx.arc(pedX, pedY, 300, Math.PI, Math.PI + a1, false);
-        ctx.fill();
+        ctx2d.beginPath(); ctx2d.moveTo(pedX, pedY); ctx2d.arc(pedX, pedY, 300, Math.PI, Math.PI + a1, false); ctx2d.fill();
 
-        // Ray lines
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = '#94a3b8';
-        ctx.beginPath(); ctx.moveTo(pedX, pedY); ctx.lineTo(bldgTopX, bldgTopY); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(pedX, pedY); ctx.lineTo(corrTopX, corrTopY); ctx.stroke();
-        ctx.setLineDash([]);
-        
-        // Label
-        ctx.font = '12px Inter';
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('可見天空範圍', pedX, pedY - 120);
+        ctx2d.setLineDash([4, 4]); ctx2d.strokeStyle = '#94a3b8';
+        ctx2d.beginPath(); ctx2d.moveTo(pedX, pedY); ctx2d.lineTo(bldgTopX, bldgTopY); ctx2d.stroke();
+        ctx2d.beginPath(); ctx2d.moveTo(pedX, pedY); ctx2d.lineTo(corrTopX, corrTopY); ctx2d.stroke();
+        ctx2d.setLineDash([]);
     }
 
-    // Building
-    ctx.fillStyle = 'rgba(100, 116, 139, 0.1)'; // slate-500 light
-    ctx.fillRect(0, groundY - 15 * scale, bldgX, 15 * scale);
-    ctx.strokeStyle = '#94a3b8'; // slate-400
-    ctx.strokeRect(0, groundY - 15 * scale, bldgX, 15 * scale);
+    ctx2d.fillStyle = 'rgba(100, 116, 139, 0.1)'; 
+    ctx2d.fillRect(0, groundY - 15 * scale, bldgX, 15 * scale);
+    ctx2d.strokeStyle = '#94a3b8'; ctx2d.strokeRect(0, groundY - 15 * scale, bldgX, 15 * scale);
 
-    // Corridor Structure
     const deckY = groundY - config.corridorHeight * scale;
     const canopyY = groundY - config.canopyHeight * scale;
     const corrW = config.corridorWidth * scale;
     
-    // Slanted Pillar
-    ctx.strokeStyle = '#94a3b8'; // slate-400
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(corridorX + corrW + 2*scale, groundY); // Base slightly to the right
-    ctx.lineTo(corridorX + corrW/2, canopyY); // Meets the canopy center
-    ctx.stroke();
+    ctx2d.strokeStyle = '#94a3b8'; ctx2d.lineWidth = 6;
+    ctx2d.beginPath(); ctx2d.moveTo(corridorX + corrW + 2*scale, groundY); 
+    ctx2d.lineTo(corridorX + corrW/2, canopyY); ctx2d.stroke();
     
-    // Safety railings
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(corridorX, deckY); ctx.lineTo(corridorX, deckY - 1.2*scale); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(corridorX + corrW, deckY); ctx.lineTo(corridorX + corrW, deckY - 1.2*scale); ctx.stroke();
+    ctx2d.strokeStyle = 'rgba(0, 0, 0, 0.2)'; ctx2d.lineWidth = 1;
+    ctx2d.beginPath(); ctx2d.moveTo(corridorX, deckY); ctx2d.lineTo(corridorX, deckY - 1.2*scale); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(corridorX + corrW, deckY); ctx2d.lineTo(corridorX + corrW, deckY - 1.2*scale); ctx2d.stroke();
 
-    // Deck (Morandi Green)
-    ctx.fillStyle = '#7c9a8f'; 
-    ctx.fillRect(corridorX, deckY, corrW, 10);
+    ctx2d.fillStyle = '#7c9a8f'; ctx2d.fillRect(corridorX, deckY, corrW, 10);
     
-    // Canopy Roof (V Shape - Morandi Green)
-    ctx.strokeStyle = '#7c9a8f';
-    ctx.fillStyle = 'rgba(124, 154, 143, 0.1)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(corridorX - scale, canopyY - 1.5*scale);
-    ctx.lineTo(corridorX + corrW/2, canopyY);
-    ctx.lineTo(corridorX + corrW + scale, canopyY - 1.5*scale);
-    ctx.fill();
-    ctx.stroke();
+    ctx2d.strokeStyle = '#7c9a8f'; ctx2d.fillStyle = 'rgba(124, 154, 143, 0.1)'; ctx2d.lineWidth = 3;
+    ctx2d.beginPath(); ctx2d.moveTo(corridorX - scale, canopyY - 1.5*scale);
+    ctx2d.lineTo(corridorX + corrW/2, canopyY); ctx2d.lineTo(corridorX + corrW + scale, canopyY - 1.5*scale);
+    ctx2d.fill(); ctx2d.stroke();
 
-    // Trees
-    if(state.distance >= 4) {
-        drawTree(ctx, bldgX + (state.distance * scale)/2, groundY, scale);
-    }
-    drawTree(ctx, corridorX + corrW + 3*scale, groundY, scale);
+    if(state.distance >= 4) drawTree2D(ctx2d, bldgX + (state.distance * scale)/2, groundY, scale);
+    drawTree2D(ctx2d, corridorX + corrW + 3*scale, groundY, scale);
 
-    // Humans
-    drawPerson(ctx, bldgX + 2.5 * scale, groundY, scale); // Pedestrian
-    drawPerson(ctx, corridorX + corrW / 2 + 10, deckY, scale); // On the green corridor
+    drawPerson(ctx2d, bldgX + 3 * scale, groundY, scale); 
+    drawPerson(ctx2d, corridorX + corrW / 2 + 10, deckY, scale); 
 
     if (state.viewMode === 'res') {
-        // Residential Eye Point
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.arc(bldgX - 5, eyeY, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(bldgX - 5, eyeY, 8, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.stroke();
+        ctx2d.fillStyle = '#1e293b';
+        ctx2d.beginPath(); ctx2d.arc(bldgX - 5, eyeY, 4, 0, Math.PI * 2); ctx2d.fill();
+        ctx2d.beginPath(); ctx2d.arc(bldgX - 5, eyeY, 8, 0, Math.PI * 2);
+        ctx2d.strokeStyle = 'rgba(0, 0, 0, 0.3)'; ctx2d.stroke();
 
-        // Line of sight
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(bldgX - 5, eyeY);
-        ctx.lineTo(corridorX + corrW/2, deckY - 1.5*scale); // Sight to cyclist face
-        ctx.strokeStyle = '#e11d48'; // rose-600
-        ctx.stroke();
-        ctx.setLineDash([]);
+        ctx2d.setLineDash([4, 4]); ctx2d.beginPath(); ctx2d.moveTo(bldgX - 5, eyeY);
+        ctx2d.lineTo(corridorX + corrW/2, deckY - 1.5*scale); 
+        ctx2d.strokeStyle = '#e11d48'; ctx2d.stroke(); ctx2d.setLineDash([]);
     }
     
-    // Measurement Labels
-    ctx.font = '10px monospace';
-    ctx.fillStyle = '#64748b'; // slate-500
-    ctx.fillText(`${state.distance}m`, bldgX + (state.distance * scale)/2 - 10, groundY - 10);
-    ctx.fillText('6m 寬', corridorX + corrW + 5, deckY + 15);
+    ctx2d.font = '10px monospace'; ctx2d.fillStyle = '#64748b'; 
+    ctx2d.fillText(`${state.distance}m`, bldgX + (state.distance * scale)/2 - 10, groundY - 10);
+    ctx2d.fillText('6m 寬', corridorX + corrW + 5, deckY + 15);
 }
 
-// Math Helpers for SVF
+// ----------------------------------------------------
+// THREE.JS 3D SCENE SETUP
+// ----------------------------------------------------
+function initThreeJS() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#f8fafc'); 
+
+    camera = new THREE.PerspectiveCamera(45, els.container3D.offsetWidth / els.container3D.offsetHeight, 0.1, 1000);
+    camera.position.set(12, 10, 18);
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(els.container3D.offsetWidth, els.container3D.offsetHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    els.container3D.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(3, 5, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(20, 40, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+
+    build3DScene();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+}
+
+function build3DScene() {
+    // Materials
+    const groundMat = new THREE.MeshLambertMaterial({ color: '#f8fafc' }); 
+    const roadMat = new THREE.MeshLambertMaterial({ color: '#94a3b8' }); // Road
+    const sidewalkMat = new THREE.MeshLambertMaterial({ color: '#e2e8f0' }); // Sidewalk
+    const bldgMat = new THREE.MeshLambertMaterial({ color: '#cbd5e1' }); 
+    const glassMat = new THREE.MeshPhongMaterial({ color: '#38bdf8', shininess: 100, opacity: 0.8, transparent: true }); // Windows
+    const deckMat = new THREE.MeshLambertMaterial({ color: '#7c9a8f' }); 
+    const canopyMat = new THREE.MeshLambertMaterial({ color: '#8ba397', transparent: true, opacity: 0.9 }); 
+    const pillarMat = new THREE.MeshLambertMaterial({ color: '#64748b' }); 
+    const railMat = new THREE.MeshLambertMaterial({ color: '#94a3b8' }); 
+    const treeMat = new THREE.MeshLambertMaterial({ color: '#5b8a72' });
+    const trunkMat = new THREE.MeshLambertMaterial({ color: '#78350f' });
+
+    // Helper to create a more realistic humanoid figure
+    function createHuman() {
+        const group = new THREE.Group();
+        const shirtMat = new THREE.MeshLambertMaterial({ color: '#3b82f6' }); // Blue shirt
+        const skinMat = new THREE.MeshLambertMaterial({ color: '#fcd34d' });  // Skin tone
+        const pantsMat = new THREE.MeshLambertMaterial({ color: '#1e293b' }); // Dark pants
+        const shoeMat = new THREE.MeshLambertMaterial({ color: '#0f172a' });  // Shoes
+
+        // Torso
+        const torsoGeo = new THREE.BoxGeometry(0.45, 0.65, 0.25);
+        const torso = new THREE.Mesh(torsoGeo, shirtMat);
+        torso.position.y = 0.95; 
+        torso.castShadow = true;
+        group.add(torso);
+
+        // Head
+        const headGeo = new THREE.SphereGeometry(0.14, 16, 16);
+        const head = new THREE.Mesh(headGeo, skinMat);
+        head.position.y = 1.45; 
+        head.castShadow = true;
+        group.add(head);
+
+        // Legs
+        const legGeo = new THREE.BoxGeometry(0.18, 0.6, 0.18);
+        const legL = new THREE.Mesh(legGeo, pantsMat);
+        legL.position.set(-0.12, 0.35, 0);
+        legL.castShadow = true;
+        group.add(legL);
+
+        const legR = new THREE.Mesh(legGeo, pantsMat);
+        legR.position.set(0.12, 0.35, 0);
+        legR.castShadow = true;
+        group.add(legR);
+
+        // Shoes
+        const shoeGeo = new THREE.BoxGeometry(0.2, 0.1, 0.25);
+        const shoeL = new THREE.Mesh(shoeGeo, shoeMat);
+        shoeL.position.set(-0.12, 0.05, 0.03);
+        shoeL.castShadow = true;
+        group.add(shoeL);
+
+        const shoeR = new THREE.Mesh(shoeGeo, shoeMat);
+        shoeR.position.set(0.12, 0.05, 0.03);
+        shoeR.castShadow = true;
+        group.add(shoeR);
+
+        // Arms
+        const armGeo = new THREE.BoxGeometry(0.14, 0.6, 0.14);
+        const armL = new THREE.Mesh(armGeo, skinMat);
+        armL.position.set(-0.32, 0.9, 0);
+        armL.castShadow = true;
+        group.add(armL);
+
+        const armR = new THREE.Mesh(armGeo, skinMat);
+        armR.position.set(0.32, 0.9, 0);
+        armR.castShadow = true;
+        group.add(armR);
+
+        // Face direction (small nose)
+        const noseGeo = new THREE.SphereGeometry(0.03, 8, 8);
+        const nose = new THREE.Mesh(noseGeo, skinMat);
+        nose.position.set(0, 1.45, 0.14); // Nose pointing towards +Z
+        group.add(nose);
+
+        return group;
+    }
+
+    // Ground Base
+    const groundGeo = new THREE.PlaneGeometry(100, 100);
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Road (x = 3 to 33)
+    const roadGeo = new THREE.PlaneGeometry(30, 100);
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.set(18, 0.01, 0); 
+    road.receiveShadow = true;
+    scene.add(road);
+
+    // Sidewalk (x = 0 to 3)
+    const swGeo = new THREE.PlaneGeometry(3, 100);
+    const sidewalk = new THREE.Mesh(swGeo, sidewalkMat);
+    sidewalk.rotation.x = -Math.PI / 2;
+    sidewalk.position.set(1.5, 0.02, 0); 
+    sidewalk.receiveShadow = true;
+    scene.add(sidewalk);
+
+    // Grid Helper
+    const grid = new THREE.GridHelper(100, 100, 0x000000, 0x000000);
+    grid.material.opacity = 0.05;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    // Building (Face at X=0)
+    const bldgHeight = 15;
+    const bldgGeo = new THREE.BoxGeometry(10, bldgHeight, 40);
+    const building = new THREE.Mesh(bldgGeo, bldgMat);
+    building.position.set(-5, bldgHeight / 2, 0); 
+    building.castShadow = true;
+    building.receiveShadow = true;
+    scene.add(building);
+
+    // Floor lines and Windows
+    for (let i = 1; i <= 4; i++) {
+        // Floor line
+        const lineGeo = new THREE.BoxGeometry(10.1, 0.1, 40.1);
+        const lineMat = new THREE.MeshBasicMaterial({ color: '#94a3b8' });
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.position.set(-5, i * 3, 0);
+        scene.add(line);
+
+        // Windows (glass panes)
+        for (let z = -18; z <= 18; z += 4) {
+            const winGeo = new THREE.PlaneGeometry(2.5, 1.8);
+            const win = new THREE.Mesh(winGeo, glassMat);
+            win.position.set(0.01, i * 3 - 1.2, z); 
+            win.rotation.y = Math.PI / 2; 
+            scene.add(win);
+        }
+    }
+
+    // Corridor Group 
+    corridorGroup = new THREE.Group();
+    scene.add(corridorGroup);
+
+    // Deck
+    const corrW = config.corridorWidth;
+    const deckGeo = new THREE.BoxGeometry(corrW, 0.5, 40);
+    const deck = new THREE.Mesh(deckGeo, deckMat);
+    deck.position.set(corrW / 2, config.corridorHeight, 0);
+    deck.castShadow = true;
+    deck.receiveShadow = true;
+    corridorGroup.add(deck);
+
+    // Railings on Deck
+    const railH = 1.2;
+    const railTopGeo = new THREE.BoxGeometry(0.1, 0.1, 40);
+    const railLeft = new THREE.Mesh(railTopGeo, railMat);
+    railLeft.position.set(0.1, config.corridorHeight + 0.25 + railH, 0);
+    corridorGroup.add(railLeft);
+    const railRight = new THREE.Mesh(railTopGeo, railMat);
+    railRight.position.set(corrW - 0.1, config.corridorHeight + 0.25 + railH, 0);
+    corridorGroup.add(railRight);
+
+    for (let z = -19; z <= 19; z += 2) {
+        const postGeo = new THREE.CylinderGeometry(0.05, 0.05, railH);
+        const postL = new THREE.Mesh(postGeo, railMat);
+        postL.position.set(0.1, config.corridorHeight + 0.25 + railH/2, z);
+        corridorGroup.add(postL);
+        const postR = new THREE.Mesh(postGeo, railMat);
+        postR.position.set(corrW - 0.1, config.corridorHeight + 0.25 + railH/2, z);
+        corridorGroup.add(postR);
+    }
+
+    // Canopy
+    const canopyGeo = new THREE.BoxGeometry(corrW + 1, 0.2, 40);
+    const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+    canopy.position.set(corrW / 2, config.canopyHeight, 0);
+    canopy.rotation.z = 0.05; 
+    canopy.castShadow = true;
+    corridorGroup.add(canopy);
+
+    // Structural Pillars
+    for (let z = -15; z <= 15; z += 10) {
+        const pillarGeo = new THREE.CylinderGeometry(0.3, 0.4, 11); // Tapered
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(corrW + 0.5, config.canopyHeight / 2, z);
+        pillar.rotation.z = Math.PI / 16; 
+        pillar.castShadow = true;
+        corridorGroup.add(pillar);
+        
+        // Base
+        const baseGeo = new THREE.BoxGeometry(1, 0.5, 1);
+        const base = new THREE.Mesh(baseGeo, pillarMat);
+        base.position.set(corrW + 0.5 + 1.1, 0.25, z);
+        corridorGroup.add(base);
+    }
+
+    // Trees (Enhanced Multi-sphere)
+    for (let z = -18; z <= 18; z += 6) {
+        const tGeo = new THREE.CylinderGeometry(0.2, 0.3, 2.5);
+        const trunk = new THREE.Mesh(tGeo, trunkMat);
+        trunk.position.set(2, 1.25, z);
+        trunk.castShadow = true;
+        
+        const treeGroup = new THREE.Group();
+        treeGroup.add(trunk);
+
+        // Multiple spheres for canopy
+        const leafPositions = [
+            {y: 3.5, size: 1.5},
+            {x: 0.8, y: 3, size: 1.2},
+            {x: -0.8, y: 3, size: 1.2},
+            {z: 0.8, y: 3, size: 1.2},
+            {z: -0.8, y: 3, size: 1.2}
+        ];
+
+        leafPositions.forEach(p => {
+            const lGeo = new THREE.SphereGeometry(p.size, 7, 7);
+            const leaves = new THREE.Mesh(lGeo, treeMat);
+            leaves.position.set(2 + (p.x||0), p.y, z + (p.z||0));
+            leaves.castShadow = true;
+            treeGroup.add(leaves);
+        });
+
+        scene.add(treeGroup);
+    }
+
+    // Add Human on Deck (Cyclist/Pedestrian for Residential View)
+    const deckHuman = createHuman();
+    // Rotate human so they face the building (-X direction)
+    deckHuman.rotation.y = -Math.PI / 2;
+    deckHuman.position.set(corrW / 2, config.corridorHeight + 0.05, 0);
+    corridorGroup.add(deckHuman);
+
+    // Add Human on Ground (SVF Pedestrian)
+    const groundHuman = createHuman();
+    // Rotate human so they face the corridor (+X direction)
+    groundHuman.rotation.y = Math.PI / 2;
+    groundHuman.position.set(3, 0, 0);
+    scene.add(groundHuman);
+
+    analysisGroup = new THREE.Group();
+    scene.add(analysisGroup);
+}
+
+function updateCamera() {
+    if (!corridorGroup) return;
+    corridorGroup.position.x = state.distance;
+}
+
+function drawAnalysis() {
+    while(analysisGroup.children.length > 0) { 
+        analysisGroup.remove(analysisGroup.children[0]); 
+    }
+
+    const floorH = config.floorHeights[state.floorIndex];
+    const targetX = state.distance + config.corridorWidth / 2;
+
+    // 1. Residential Line of Sight
+    const material = new THREE.LineBasicMaterial({ color: 0xe11d48, linewidth: 2 });
+    const points = [];
+    points.push(new THREE.Vector3(0, floorH, 0)); 
+    points.push(new THREE.Vector3(targetX, config.corridorHeight + 1.5, 0)); 
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    analysisGroup.add(line);
+    
+    const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xe11d48 });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.position.set(targetX, config.corridorHeight + 1.5, 0);
+    analysisGroup.add(sphere);
+
+    // 2. SVF Radar Dome
+    const pedX = 3;
+    const pedY = 1.6;
+    const bldgHeight = 15;
+
+    const angleLeft = Math.atan2(bldgHeight - pedY, pedX); 
+    let angleRight = 0; 
+    if (state.distance - pedX > 0) {
+        angleRight = Math.atan2(config.canopyHeight - pedY, state.distance - pedX);
+    } else {
+        angleRight = Math.PI / 2; 
+    }
+    
+    const radius = 6;
+    const zPos = 0;
+
+    const geoBldg = new THREE.CircleGeometry(radius, 32, Math.PI - angleLeft, angleLeft);
+    const matBldg = new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+    const meshBldg = new THREE.Mesh(geoBldg, matBldg);
+    meshBldg.position.set(pedX, pedY, zPos);
+    analysisGroup.add(meshBldg);
+
+    const geoCanopy = new THREE.CircleGeometry(radius, 32, 0, angleRight);
+    const matCanopy = new THREE.MeshBasicMaterial({ color: 0xe11d48, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+    const meshCanopy = new THREE.Mesh(geoCanopy, matCanopy);
+    meshCanopy.position.set(pedX, pedY, zPos);
+    analysisGroup.add(meshCanopy);
+
+    const skyLen = (Math.PI - angleLeft) - angleRight;
+    if (skyLen > 0) {
+        const geoSky = new THREE.CircleGeometry(radius, 32, angleRight, skyLen);
+        const matSky = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+        const meshSky = new THREE.Mesh(geoSky, matSky);
+        meshSky.position.set(pedX, pedY, zPos);
+        analysisGroup.add(meshSky);
+    }
+}
+
+// ----------------------------------------------------
+// MATH & UI LOGIC
+// ----------------------------------------------------
+
 function calculateSVF() {
     const distToBuilding = 3;
     const bldgHeight = 15;
@@ -349,7 +644,6 @@ function calculateSVF() {
     const distToCorridor = state.distance - distToBuilding;
     let angleRight = 0;
     if (distToCorridor > 0) {
-        // Now using canopy height as the main blocker
         angleRight = Math.atan2(config.canopyHeight - eyeHeight, distToCorridor);
     } else {
         angleRight = Math.PI / 2; 
@@ -362,21 +656,21 @@ function calculateSVF() {
     return { totalBlocked, compression };
 }
 
-// Logic & Core Updates
 function update() {
+    drawViz2D(); // Draw 2D canvas
+    updateCamera(); // Update 3D Camera
+    drawAnalysis(); // Draw 3D overlays
+
     const floorH = config.floorHeights[state.floorIndex];
     
-    // 1. Calculate Residential Impact (Mode 1)
     let oppScore = 100 * Math.exp(-(state.distance - 2) / 6) * (1 - (floorH - 1.5) / 20);
     if(state.scenario === 'pro') oppScore *= 0.7;
     oppScore = Math.min(100, Math.max(0, oppScore));
 
-    // Privacy peaks at 6m (Deck height) now
     let privScore = 100 * Math.exp(-(state.distance - 2) / 5) * Math.exp(-Math.pow(floorH - config.corridorHeight, 2) / 10);
     if(state.scenario === 'pro') privScore *= 0.6;
     privScore = Math.min(100, Math.max(0, privScore));
 
-    // Update Residential UI
     els.oppScore.textContent = Math.round(oppScore);
     els.oppBar.style.width = `${oppScore}%`;
     els.oppBar.className = `progress-fill ${oppScore > 60 ? 'gradient-danger' : (oppScore > 30 ? 'gradient-warning' : 'gradient-success')}`;
@@ -385,10 +679,8 @@ function update() {
     els.privBar.style.width = `${privScore}%`;
     els.privBar.className = `progress-fill ${privScore > 60 ? 'gradient-danger' : (privScore > 30 ? 'gradient-warning' : 'gradient-success')}`;
 
-    // 2. Calculate SVF Impact (Mode 2)
     const svfData = calculateSVF();
     
-    // Update SVF UI
     els.svfScoreEl.textContent = `${Math.round(svfData.totalBlocked)}%`;
     els.svfBar.style.width = `${svfData.totalBlocked}%`;
     els.svfBar.className = `progress-fill ${svfData.totalBlocked > 80 ? 'gradient-danger' : (svfData.totalBlocked > 50 ? 'gradient-warning' : 'gradient-success')}`;
@@ -397,7 +689,6 @@ function update() {
     els.compressionBar.style.width = `${svfData.compression}%`;
     els.compressionBar.className = `progress-fill ${svfData.compression > 70 ? 'gradient-danger' : (svfData.compression > 40 ? 'gradient-warning' : 'gradient-success')}`;
 
-    // 3. Public Opinion Simulation
     const combinedImpact = Math.max(oppScore, svfData.totalBlocked);
     let baseApproval = state.scenario === 'pro' ? 65 : 40;
     let penalty = (combinedImpact * 0.3) + (privScore * 0.2); 
@@ -409,7 +700,6 @@ function update() {
     
     updateFeedbackList(finalApproval, oppScore, privScore, svfData.totalBlocked);
 
-    // 4. Housing Price Impact
     let envImpactPercent = 0;
     if(state.scenario === 'pro' && combinedImpact < 50 && privScore < 40) {
         envImpactPercent = 2.0; 
@@ -429,7 +719,6 @@ function update() {
 
     updateChartData(totalGrowth);
     updateAnalysisText(envImpactPercent, combinedImpact, privScore);
-    drawViz();
 }
 
 function updateFeedbackList(approval, opp, priv, svf) {
@@ -481,11 +770,10 @@ function updateAnalysisText(envImpact, combinedImpact, priv) {
     els.analysisText.textContent = text;
 }
 
-// Chart.js Setup
 function initChart() {
     const chartCtx = document.getElementById('price-chart').getContext('2d');
     
-    Chart.defaults.color = '#64748b'; // slate-500
+    Chart.defaults.color = '#64748b'; 
     Chart.defaults.font.family = "'Inter', 'Noto Sans TC', sans-serif";
     
     priceChart = new Chart(chartCtx, {
@@ -495,7 +783,7 @@ function initChart() {
             datasets: [{
                 label: '預測房價指數 (Base=100)',
                 data: [],
-                borderColor: '#7c9a8f', // Morandi Green
+                borderColor: '#7c9a8f',
                 backgroundColor: 'rgba(124, 154, 143, 0.1)',
                 borderWidth: 3,
                 pointBackgroundColor: '#7c9a8f',
@@ -546,7 +834,7 @@ function updateChartData(growthRate) {
     const labels = [];
     const data = [];
     
-    let currentVal = 100; // Base index
+    let currentVal = 100; 
     for(let i = 0; i <= years; i++) {
         labels.push(`第${i}年`);
         data.push(currentVal.toFixed(1));
@@ -556,7 +844,6 @@ function updateChartData(growthRate) {
     priceChart.data.labels = labels;
     priceChart.data.datasets[0].data = data;
     
-    // Dynamic color based on growth direction
     const isPositive = growthRate > config.baseGrowthRate;
     const color = isPositive ? '#7c9a8f' : (growthRate < 0 ? '#e11d48' : '#64748b');
     const bgColor = isPositive ? 'rgba(124, 154, 143, 0.1)' : (growthRate < 0 ? 'rgba(225, 29, 72, 0.1)' : 'rgba(100, 116, 139, 0.1)');
@@ -568,5 +855,4 @@ function updateChartData(growthRate) {
     priceChart.update();
 }
 
-// Bootstrap
 document.addEventListener('DOMContentLoaded', init);
