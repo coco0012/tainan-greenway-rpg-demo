@@ -61,9 +61,10 @@ export class MapScene extends Phaser.Scene {
     // Set Arcade physics bounds
     this.physics.world.setBounds(0, 0, mapWidth, mapHeight);
 
-    // 1. DRAW 2.5D GRID & SLANTED GREENWAY PATH
-    // Tiled grass background
-    this.add.tileSprite(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 'ground_2_5d');
+    // Base Cream grass color
+    this.add.rectangle(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 0xf4f3ef);
+    // Subtle Grid lines
+    this.add.grid(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 40, 40, 0, 0, 0xe6e4dc, 0.45);
 
     // Greenway Spine Path running diagonally through center (2.5D slanted angle)
     // Runs from (0, 480) to (1400, 240) representing a slanted lane
@@ -330,10 +331,6 @@ export class MapScene extends Phaser.Scene {
     // 8. RENDER FIXED HUD STATS
     this.drawHUD();
 
-    // Collide/Overlap rules
-    this.physics.add.overlap(this.player, this.questZones, this.handleTriggerInteractive as any, undefined, this);
-    this.physics.add.overlap(this.player, this.npcEntities, this.handleTriggerInteractive as any, undefined, this);
-
     // Check if portal is already completed and spawn portal on boot if so
     if (completed[1] && completed[2] && completed[3]) {
       this.spawnFinalCenterPortal();
@@ -342,19 +339,6 @@ export class MapScene extends Phaser.Scene {
 
   update() {
     this.updateHUD();
-
-    // Check if active object has gone out of range
-    if (this.activeInteractiveObj) {
-      const dist = Phaser.Math.Distance.Between(
-        this.player.x, this.player.y,
-        (this.activeInteractiveObj.ref as any).x, (this.activeInteractiveObj.ref as any).y
-      );
-      if (dist > 50) {
-        this.floatingPrompt.setVisible(false);
-        this.rangeRing.clear();
-        this.activeInteractiveObj = null;
-      }
-    }
 
     if (this.isDialogueActive || this.isClashActive || this.isCinematicActive) {
       this.player.setVelocity(0, 0);
@@ -405,30 +389,63 @@ export class MapScene extends Phaser.Scene {
       this.player.angle = 0;
     }
 
+    // 3. DISTANCE-BASED ACTIVE INTERACTIVE OBJECT DETECTION
+    let closestObj: { type: 'quest' | 'npc' | 'portal'; id: number; ref: Phaser.GameObjects.GameObject } | null = null;
+    let minDist = 50;
+
+    // Check Quests
+    this.questZones.getChildren().forEach(q => {
+      const sprite = q as Phaser.GameObjects.Sprite;
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, sprite.x, sprite.y);
+      if (d < minDist) {
+        minDist = d;
+        closestObj = { type: 'quest', id: sprite.getData('id'), ref: sprite };
+      }
+    });
+
+    // Check NPCs
+    this.npcEntities.getChildren().forEach(n => {
+      const sprite = n as Phaser.GameObjects.Sprite;
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, sprite.x, sprite.y);
+      if (d < minDist) {
+        minDist = d;
+        closestObj = { type: 'npc', id: sprite.getData('id'), ref: sprite };
+      }
+    });
+
+    // Check Portal (if spawned)
+    const portal = this.children.getByName('final_portal');
+    if (portal) {
+      const sprite = portal as Phaser.GameObjects.Sprite;
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, sprite.x, sprite.y);
+      if (d < minDist) {
+        minDist = d;
+        closestObj = { type: 'portal', id: 99, ref: sprite };
+      }
+    }
+
+    if (closestObj) {
+      this.activeInteractiveObj = closestObj;
+      const refSprite = (closestObj as any).ref as Phaser.GameObjects.Sprite;
+      
+      // Position floating prompt above target
+      this.floatingPrompt.setPosition(refSprite.x, refSprite.y - 42);
+      this.floatingPrompt.setVisible(true);
+
+      // Draw dashed range ring
+      this.rangeRing.clear();
+      this.rangeRing.lineStyle(1.5, closestObj.type === 'portal' ? 0xd98880 : 0x7c9a8f, 0.8);
+      this.rangeRing.strokeCircle(refSprite.x, refSprite.y + 15, 32);
+    } else {
+      this.activeInteractiveObj = null;
+      this.floatingPrompt.setVisible(false);
+      this.rangeRing.clear();
+    }
+
     // Interaction key check
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       this.triggerInteraction();
     }
-  }
-
-  // INTERACTIVE TRIGGERS
-  private handleTriggerInteractive(_player: any, obj: Phaser.GameObjects.GameObject) {
-    if (this.isDialogueActive || this.isClashActive || this.isCinematicActive) return;
-    
-    const type = obj.getData('type');
-    const id = obj.getData('id');
-    
-    this.activeInteractiveObj = { type, id, ref: obj };
-
-    // Position floating E prompt above target
-    const targetSprite = obj as Phaser.GameObjects.Sprite;
-    this.floatingPrompt.setPosition(targetSprite.x, targetSprite.y - 42);
-    this.floatingPrompt.setVisible(true);
-
-    // Draw selection ring
-    this.rangeRing.clear();
-    this.rangeRing.lineStyle(1.5, 0x7c9a8f, 0.8);
-    this.rangeRing.strokeCircle(targetSprite.x, targetSprite.y + 15, 32);
   }
 
   private triggerInteraction() {
@@ -1253,9 +1270,7 @@ export class MapScene extends Phaser.Scene {
     // Pulse rose pink portal graphic
     const portal = this.add.circle(mapWidth / 2, mapHeight / 2 + 10, 30, 0xd98880, 0.75);
     portal.setName('final_portal');
-    portal.setStrokeStyle(2.5, 0xffffff, 1);
     portal.setDepth(mapHeight / 2 + 10);
-    this.physics.add.existing(portal, true);
     
     this.tweens.add({
       targets: portal,
@@ -1272,20 +1287,6 @@ export class MapScene extends Phaser.Scene {
       backgroundColor: '#7c9a8f',
       padding: { x: 8, y: 5 }
     }).setOrigin(0.5).setDepth(mapHeight / 2 + 11);
-
-    // Overlap rule for portal
-    this.physics.add.overlap(this.player, portal, () => {
-      this.activeInteractiveObj = { type: 'portal', id: 99, ref: portal };
-      
-      // Floating prompt position
-      this.floatingPrompt.setPosition(mapWidth / 2, mapHeight / 2 - 45);
-      this.floatingPrompt.setVisible(true);
-
-      // Dash circle
-      this.rangeRing.clear();
-      this.rangeRing.lineStyle(1.5, 0xd98880, 0.85);
-      this.rangeRing.strokeCircle(mapWidth / 2, mapHeight / 2 + 10, 42);
-    }, undefined, this);
   }
 
   // NPC dialogue brief popup

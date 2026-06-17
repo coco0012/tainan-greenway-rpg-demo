@@ -37,10 +37,6 @@ export class BootScene extends Phaser.Scene {
       progressBox.destroy();
       loadingText.destroy();
     });
-
-    // Preload custom images
-    this.load.image('ground_2_5d', 'assets/ground_2_5d.png');
-    this.load.image('shadow', 'assets/shadow.png');
   }
 
   create() {
@@ -451,6 +447,13 @@ export class BootScene extends Phaser.Scene {
     g.strokeTriangle(24, 8, 42, 16, 24, 24);
     g.strokeRect(14, 38, 16, 4);
     g.generateTexture('flag_marker', 48, 48);
+    g.destroy();
+
+    // --- 18. SHADOW (64x64) ---
+    g = this.add.graphics();
+    g.fillStyle(0x000000, 0.22); // 22% opacity black
+    g.fillEllipse(32, 42, 22, 10); // Oval ellipse shadow for 2.5D objects
+    g.generateTexture('shadow', 64, 64);
     g.destroy();
   }
 }
