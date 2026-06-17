@@ -7,6 +7,7 @@ import { LevelScene } from './components/LevelScene';
 import { ResultComic } from './components/ResultComic';
 import { AwardScene } from './components/AwardScene';
 import type { GameStats } from './components/StatsPanel';
+import { StatsPanel } from './components/StatsPanel';
 
 const INITIAL_STATS: GameStats = {
   residentSatisfaction: 50,
@@ -96,51 +97,61 @@ function App() {
     setCurrentScene('intro');
   };
 
+  const showHUD = currentScene === 'map' || currentScene === 'level' || currentScene === 'result_comic';
+
   return (
-    <div className="min-h-screen bg-game-bg text-game-text antialiased">
-      {currentScene === 'intro' && (
-        <IntroScene onStart={handleStartIntro} />
+    <div className="min-h-screen bg-game-bg text-game-text antialiased flex flex-col">
+      {showHUD && (
+        <div className="w-full max-w-6xl mx-auto px-4 pt-4 z-40">
+          <StatsPanel stats={stats} />
+        </div>
       )}
       
-      {currentScene === 'character_select' && (
-        <CharacterSelect onSelect={handleSelectCharacter} />
-      )}
-      
-      {currentScene === 'map' && (
-        <GameMap 
-          stats={stats} 
-          completedLevels={completedLevels}
-          onSelectLevel={handleSelectLevel}
-          onSubmitResult={handleSubmitResult}
-          selectedCharName={selectedCharName}
-        />
-      )}
-      
-      {currentScene === 'level' && currentLevelId !== null && (
-        <LevelScene 
-          levelId={currentLevelId}
-          stats={stats}
-          characterId={selectedCharacter || 'designer'}
-          onSelectOption={handleSelectLevelOption}
-          onBackToMap={handleLevelBackToMap}
-        />
-      )}
-      
-      {currentScene === 'result_comic' && (
-        <ResultComic 
-          stats={stats} 
-          onNext={handleNextToAward}
-          selectedCharName={selectedCharName}
-        />
-      )}
-      
-      {currentScene === 'award' && (
-        <AwardScene 
-          stats={stats} 
-          selectedCharName={selectedCharName}
-          onRestart={handleRestartGame}
-        />
-      )}
+      <div className="flex-grow flex flex-col">
+        {currentScene === 'intro' && (
+          <IntroScene onStart={handleStartIntro} />
+        )}
+        
+        {currentScene === 'character_select' && (
+          <CharacterSelect onSelect={handleSelectCharacter} />
+        )}
+        
+        {currentScene === 'map' && (
+          <GameMap 
+            stats={stats} 
+            completedLevels={completedLevels}
+            onSelectLevel={handleSelectLevel}
+            onSubmitResult={handleSubmitResult}
+            selectedCharName={selectedCharName}
+          />
+        )}
+        
+        {currentScene === 'level' && currentLevelId !== null && (
+          <LevelScene 
+            levelId={currentLevelId}
+            stats={stats}
+            characterId={selectedCharacter || 'designer'}
+            onSelectOption={handleSelectLevelOption}
+            onBackToMap={handleLevelBackToMap}
+          />
+        )}
+        
+        {currentScene === 'result_comic' && (
+          <ResultComic 
+            stats={stats} 
+            onNext={handleNextToAward}
+            selectedCharName={selectedCharName}
+          />
+        )}
+        
+        {currentScene === 'award' && (
+          <AwardScene 
+            stats={stats} 
+            selectedCharName={selectedCharName}
+            onRestart={handleRestartGame}
+          />
+        )}
+      </div>
     </div>
   );
 }

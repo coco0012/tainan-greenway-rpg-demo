@@ -1,5 +1,4 @@
 import { Play, CheckCircle, MapPin, Award } from 'lucide-react';
-import { StatsPanel } from './StatsPanel';
 import type { GameStats } from './StatsPanel';
 
 interface GameMapProps {
@@ -11,7 +10,7 @@ interface GameMapProps {
 }
 
 export const GameMap: React.FC<GameMapProps> = ({
-  stats,
+  stats: _stats,
   completedLevels,
   onSelectLevel,
   onSubmitResult,
@@ -80,9 +79,6 @@ export const GameMap: React.FC<GameMapProps> = ({
             ))}
           </div>
         </div>
-
-        {/* Compact stats view */}
-        <StatsPanel stats={stats} compact={true} />
       </div>
 
       {/* 2.5D ISOMETRIC GAME MAP DISPLAY */}
