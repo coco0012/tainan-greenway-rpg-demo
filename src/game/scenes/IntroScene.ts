@@ -34,12 +34,12 @@ export class IntroScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Background color
-    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x0b0c10);
+    // Background color (light beige/cream)
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0xf4f3ef);
     this.tempElements.push(bg);
 
-    // Glowing grids
-    const grid = this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0x66fcf1, 0.05);
+    // Glowing grids - soft green
+    const grid = this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0x7c9a8f, 0.1);
     this.tempElements.push(grid);
 
     // Giant Emoji
@@ -59,32 +59,32 @@ export class IntroScene extends Phaser.Scene {
     // Game Title
     const title = this.add.text(width / 2, height / 2 - 30, '台南綠園道', {
       font: 'bold 44px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5);
     this.tempElements.push(title);
 
     const subtitle = this.add.text(width / 2, height / 2 + 25, '2.5D RPG 城市協商遊戲', {
       font: 'bold 22px "Noto Sans TC", sans-serif',
-      color: '#66fcf1'
+      color: '#7c9a8f'
     }).setOrigin(0.5);
     this.tempElements.push(subtitle);
 
-    // Press Start Button
+    // Press Start Button (Minimalist white box with grey border)
     const startButtonBox = this.add.graphics();
-    startButtonBox.fillStyle(0x1f2833, 0.9);
-    startButtonBox.lineStyle(2, 0x66fcf1, 1);
+    startButtonBox.fillStyle(0xffffff, 1);
+    startButtonBox.lineStyle(2, 0x7c9a8f, 1);
     startButtonBox.fillRoundedRect(width / 2 - 120, height / 2 + 100, 240, 50, 8);
     startButtonBox.strokeRoundedRect(width / 2 - 120, height / 2 + 100, 240, 50, 8);
     this.tempElements.push(startButtonBox);
 
     const startBtn = this.add.text(width / 2, height / 2 + 125, '開始遊戲 (START)', {
       font: 'bold 15px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.tempElements.push(startBtn);
 
-    startBtn.on('pointerover', () => startBtn.setColor('#66fcf1'));
-    startBtn.on('pointerout', () => startBtn.setColor('#ffffff'));
+    startBtn.on('pointerover', () => startBtn.setColor('#7c9a8f'));
+    startBtn.on('pointerout', () => startBtn.setColor('#2c3e35'));
     startBtn.on('pointerdown', () => this.startStoryCinematic());
 
     // Press Space Key listener
@@ -95,7 +95,7 @@ export class IntroScene extends Phaser.Scene {
 
     const info = this.add.text(width / 2, height - 30, 'WASD鍵盤移動 // E互動 // 1,2,3選擇對話 // 支援滑鼠操作', {
       font: '10px monospace',
-      color: '#45a29e'
+      color: '#5c6b63'
     }).setOrigin(0.5);
     this.tempElements.push(info);
   }
@@ -109,54 +109,54 @@ export class IntroScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Dark grey canvas
-    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x05080c);
+    // Light beige canvas
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0xf4f3ef);
     this.tempElements.push(bg);
 
     // Skip Intro button
     const skipBtn = this.add.text(width - 80, 30, '跳過動畫 ➔', {
       font: '12px "Noto Sans TC", sans-serif',
-      color: '#45a29e'
+      color: '#7c9a8f'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.tempElements.push(skipBtn);
-    skipBtn.on('pointerover', () => skipBtn.setColor('#66fcf1'));
-    skipBtn.on('pointerout', () => skipBtn.setColor('#45a29e'));
+    skipBtn.on('pointerover', () => skipBtn.setColor('#2c3e35'));
+    skipBtn.on('pointerout', () => skipBtn.setColor('#7c9a8f'));
     skipBtn.on('pointerdown', () => this.startCharacterSelection());
 
     // Visual Panel Box
     const visualBox = this.add.graphics();
-    visualBox.lineStyle(1, 0x1f2833, 0.5);
+    visualBox.lineStyle(1, 0x7c9a8f, 0.3);
     visualBox.strokeRect(width / 2 - 200, height / 2 - 170, 400, 180);
     this.tempElements.push(visualBox);
 
-    // Dialog Box
+    // Dialog Box (Clean white card)
     const dialogBox = this.add.graphics();
-    dialogBox.fillStyle(0x0f1622, 0.95);
-    dialogBox.lineStyle(1, 0x66fcf1, 0.5);
+    dialogBox.fillStyle(0xffffff, 0.95);
+    dialogBox.lineStyle(1, 0x7c9a8f, 0.5);
     dialogBox.fillRoundedRect(width / 2 - 350, height - 150, 700, 110, 10);
     dialogBox.strokeRoundedRect(width / 2 - 350, height - 150, 700, 110, 10);
     this.tempElements.push(dialogBox);
 
-    // Dialog Text Object
+    // Dialog Text Object (Dark charcoal text)
     this.dialogTextObj = this.add.text(width / 2 - 330, height - 135, '', {
       font: '14px "Noto Sans TC", sans-serif',
-      color: '#c5c6c7',
+      color: '#2f3e46',
       wordWrap: { width: 660, useAdvancedWrap: true },
       lineSpacing: 8
     });
     this.tempElements.push(this.dialogTextObj);
 
-    // Next Slide Button
+    // Next Slide Button (White panel)
     const nextBtnBox = this.add.graphics();
-    nextBtnBox.fillStyle(0x1f2833, 0.9);
-    nextBtnBox.lineStyle(1, 0x66fcf1, 0.8);
+    nextBtnBox.fillStyle(0xffffff, 0.95);
+    nextBtnBox.lineStyle(1, 0x7c9a8f, 0.8);
     nextBtnBox.fillRoundedRect(width / 2 + 250, height - 70, 80, 25, 4);
     nextBtnBox.strokeRoundedRect(width / 2 + 250, height - 70, 80, 25, 4);
     this.tempElements.push(nextBtnBox);
 
     const nextText = this.add.text(width / 2 + 290, height - 58, '下一幕', {
       font: '10px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.tempElements.push(nextText);
 
@@ -273,23 +273,23 @@ export class IntroScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    // Background
-    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x0b0c10);
+    // Background (light beige)
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0xf4f3ef);
     this.tempElements.push(bg);
 
-    const grid = this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0x66fcf1, 0.03);
+    const grid = this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0x7c9a8f, 0.06);
     this.tempElements.push(grid);
 
-    // Title
+    // Title (Dark green-grey)
     const title = this.add.text(width / 2, 40, '🎭 選擇你的協調角色 (Select Role)', {
       font: 'bold 24px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5);
     this.tempElements.push(title);
 
     const subtitle = this.add.text(width / 2, 75, '身分將決定你的初始 HUD 數值，並帶來特定的公共空間協商加成', {
       font: '12px "Noto Sans TC", sans-serif',
-      color: '#45a29e'
+      color: '#5c6b63'
     }).setOrigin(0.5);
     this.tempElements.push(subtitle);
 
@@ -305,17 +305,17 @@ export class IntroScene extends Phaser.Scene {
       const x = startX + col * 240;
       const y = startY + row * 170;
 
-      // Draw Card graphics
+      // Draw Card graphics (Clean white card)
       const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1f2833, 0.95);
-      cardBg.lineStyle(1, 0x45a29e, 0.4);
+      cardBg.fillStyle(0xffffff, 0.95);
+      cardBg.lineStyle(1, 0x7c9a8f, 0.2);
       cardBg.fillRoundedRect(x - cardWidth / 2, y - cardHeight / 2, cardWidth, cardHeight, 8);
       cardBg.strokeRoundedRect(x - cardWidth / 2, y - cardHeight / 2, cardWidth, cardHeight, 8);
       this.tempElements.push(cardBg);
 
       // Card hover state indicator
       const borderGlow = this.add.graphics();
-      borderGlow.lineStyle(2, 0x66fcf1, 1);
+      borderGlow.lineStyle(2, 0x7c9a8f, 1);
       borderGlow.strokeRoundedRect(x - cardWidth / 2, y - cardHeight / 2, cardWidth, cardHeight, 8);
       borderGlow.setVisible(false);
       this.tempElements.push(borderGlow);
@@ -327,21 +327,21 @@ export class IntroScene extends Phaser.Scene {
       // Name
       const nameText = this.add.text(x, y + 2, char.name, {
         font: 'bold 13px "Noto Sans TC", sans-serif',
-        color: '#ffffff'
+        color: '#2f3e46'
       }).setOrigin(0.5);
       this.tempElements.push(nameText);
 
       // Talent Ability
       const talentText = this.add.text(x, y + 22, `★ ${char.specialAbilityName}`, {
         font: '9px "Noto Sans TC", sans-serif',
-        color: '#66fcf1'
+        color: '#7c9a8f'
       }).setOrigin(0.5);
       this.tempElements.push(talentText);
 
       // Short Description
       const descText = this.add.text(x, y + 46, char.description, {
         font: '8px "Noto Sans TC", sans-serif',
-        color: '#c5c6c7',
+        color: '#5c6b63',
         wordWrap: { width: cardWidth - 24, useAdvancedWrap: true },
         align: 'center'
       }).setOrigin(0.5);

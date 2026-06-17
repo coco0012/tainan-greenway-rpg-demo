@@ -4,12 +4,16 @@ import { IntroScene } from './scenes/IntroScene';
 import { MapScene } from './scenes/MapScene';
 import { ResultScene } from './scenes/ResultScene';
 
-export const config: Phaser.Types.Core.GameConfig = {
+export const config: any = {
   type: Phaser.AUTO,
   width: 960,
   height: 540,
   parent: 'phaser-game-canvas',
-  backgroundColor: '#0b0c10',
+  backgroundColor: '#f4f3ef',
+  antialias: true,
+  antialiasGL: true,
+  roundPixels: true,
+  resolution: window.devicePixelRatio || 1,
   physics: {
     default: 'arcade',
     arcade: {

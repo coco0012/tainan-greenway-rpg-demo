@@ -6,8 +6,8 @@
 
 @layer base {
   body {
-    background-color: #0b0c10;
-    color: #c5c6c7;
+    background-color: #f4f3ef;
+    color: #2f3e46;
     font-family: 'Inter', 'Noto Sans TC', sans-serif;
     overflow-x: hidden;
     margin: 0;
@@ -91,17 +91,9 @@
   transform-origin: bottom center;
 }
 
-/* Retro CRT Screen Filter (Subtle overlay for game vibe) */
+/* CRT Screen Filter disabled for organic pastel aesthetic */
 .crt-overlay::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 999;
-  background-size: 100% 4px, 6px 100%;
-  pointer-events: none;
-  opacity: 0.15;
+  display: none;
 }
 
 /* Pixel Art Grid (Optional background for panels) */

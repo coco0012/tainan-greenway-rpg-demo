@@ -24,6 +24,7 @@ export class MapScene extends Phaser.Scene {
 
   // Dialogue UI
   private isDialogueActive = false;
+  private isClashActive = false;
   private dialogueOverlay?: Phaser.GameObjects.Container;
   private activeQuest: QuestData | null = null;
   private activeChoiceIndex = -1;
@@ -38,6 +39,7 @@ export class MapScene extends Phaser.Scene {
 
   create() {
     this.isDialogueActive = false;
+    this.isClashActive = false;
     this.activeInteractiveObj = null;
     this.activeQuest = null;
     this.activeChoiceIndex = -1;
@@ -50,28 +52,45 @@ export class MapScene extends Phaser.Scene {
     // Set Arcade physics bounds
     this.physics.world.setBounds(0, 0, mapWidth, mapHeight);
 
-    // 1. DRAW TAINAN GREENWAY ENVIRONMENT
-    // Base Green grass color
-    this.add.rectangle(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 0x0c1117);
+    // 1. DRAW TAINAN GREENWAY ENVIRONMENT (Flat Vector, Light Pastel Green & Cream theme)
+    // Base Cream grass color
+    this.add.rectangle(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 0xf4f3ef);
 
-    // Grid lines for game feel
-    this.add.grid(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 40, 40, 0, 0, 0x1f2833, 0.2);
+    // Subtle Grid lines
+    this.add.grid(mapWidth / 2, mapHeight / 2, mapWidth, mapHeight, 40, 40, 0, 0, 0xe6e4dc, 0.4);
 
-    // Greenway Spine Path running horizontally through center
-    const greenwaySpine = this.add.rectangle(mapWidth / 2, mapHeight / 2 + 10, mapWidth, 90, 0x1a2f24);
-    greenwaySpine.setStrokeStyle(2, 0x2e8b57, 0.4);
+    // Greenway Spine Path running horizontally through center (Soft pastel green)
+    const greenwaySpine = this.add.rectangle(mapWidth / 2, mapHeight / 2 + 10, mapWidth, 90, 0xc2d6c4);
+    greenwaySpine.setStrokeStyle(2, 0x7c9a8f, 0.3);
 
-    // Walking / Sidewalk borders
-    this.add.rectangle(mapWidth / 2, mapHeight / 2 - 40, mapWidth, 4, 0x45a29e, 0.2);
-    this.add.rectangle(mapWidth / 2, mapHeight / 2 + 60, mapWidth, 4, 0x45a29e, 0.2);
+    // Walking / Sidewalk borders (Sage Green)
+    this.add.rectangle(mapWidth / 2, mapHeight / 2 - 40, mapWidth, 4, 0xa3c1ad, 0.4);
+    this.add.rectangle(mapWidth / 2, mapHeight / 2 + 60, mapWidth, 4, 0xa3c1ad, 0.4);
 
-    // Plazas (circular nodes)
-    this.add.circle(300, mapHeight / 2 + 10, 65, 0x1f3b2e, 0.7).setStrokeStyle(1, 0x66fcf1, 0.2);
-    this.add.circle(700, mapHeight / 2 + 10, 80, 0x243e3c, 0.7).setStrokeStyle(1, 0x66fcf1, 0.2);
-    this.add.circle(1100, mapHeight / 2 + 10, 70, 0x1f3b2e, 0.7).setStrokeStyle(1, 0x66fcf1, 0.2);
+    // Plazas (circular nodes - warm beige)
+    this.add.circle(300, mapHeight / 2 + 10, 65, 0xe6e4dc, 0.85).setStrokeStyle(1.5, 0x7c9a8f, 0.3);
+    this.add.circle(700, mapHeight / 2 + 10, 80, 0xe6e4dc, 0.85).setStrokeStyle(1.5, 0x7c9a8f, 0.3);
+    this.add.circle(1100, mapHeight / 2 + 10, 70, 0xe6e4dc, 0.85).setStrokeStyle(1.5, 0x7c9a8f, 0.3);
 
     // Environment Colliders Group (houses/stores/trees)
     const obstacles = this.physics.add.staticGroup();
+
+    // Helper to draw clean white circle pedestals under building emojis
+    const createBuildingPedestal = (x: number, y: number, emoji: string, isBig: boolean = false) => {
+      const radius = isBig ? 26 : 22;
+      const ped = this.add.graphics();
+      ped.fillStyle(0xffffff, 1);
+      ped.lineStyle(1.5, 0x7c9a8f, 0.4);
+      ped.fillCircle(x, y + 4, radius);
+      ped.strokeCircle(x, y + 4, radius);
+      obstacles.add(ped);
+
+      const txt = this.add.text(x, y, emoji, { font: isBig ? '34px Arial' : '30px Arial' }).setOrigin(0.5);
+      // Setup bounding box directly on physics static body
+      const body = ped.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(radius * 1.5, radius * 1.5).setOffset(-radius * 0.75, -radius * 0.75);
+      return txt;
+    };
 
     // Spawn Buildings (North side = Residential, South side = Shops)
     const houseCoords = [
@@ -79,11 +98,7 @@ export class MapScene extends Phaser.Scene {
       { x: 800, y: 170, em: '🏠' }, { x: 950, y: 180, em: '🏠' }
     ];
     houseCoords.forEach(c => {
-      const h = this.add.text(c.x, c.y, c.em, { font: '42px Arial' }).setOrigin(0.5);
-      obstacles.add(h);
-      // Adjust bounding box size for text emojis
-      const body = h.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(35, 35).setOffset(-2, 2);
+      createBuildingPedestal(c.x, c.y, c.em);
     });
 
     const shopCoords = [
@@ -91,11 +106,33 @@ export class MapScene extends Phaser.Scene {
       { x: 780, y: 530, em: '🛍️' }, { x: 1250, y: 540, em: '🏪' }
     ];
     shopCoords.forEach(c => {
-      const s = this.add.text(c.x, c.y, c.em, { font: '42px Arial' }).setOrigin(0.5);
-      obstacles.add(s);
-      const body = s.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(38, 38).setOffset(-2, 2);
+      createBuildingPedestal(c.x, c.y, c.em);
     });
+
+    // Helper to draw clean vector trees (overlapping soft green circles) instead of basic emojis
+    const createVectorTree = (x: number, y: number) => {
+      const treeGrp = this.add.graphics();
+      // Trunk (brown)
+      treeGrp.fillStyle(0xa06a42, 1);
+      treeGrp.fillRect(x - 4, y + 10, 8, 18);
+      // Foliage layers (multi-tone pastel green circles)
+      treeGrp.fillStyle(0x8caf97, 1);
+      treeGrp.fillCircle(x, y - 10, 20);
+      treeGrp.fillStyle(0xa3c1ad, 1);
+      treeGrp.fillCircle(x - 12, y + 2, 16);
+      treeGrp.fillStyle(0x7c9a8f, 1);
+      treeGrp.fillCircle(x + 12, y + 2, 16);
+
+      // Outline
+      treeGrp.lineStyle(1.5, 0x5c6b63, 0.4);
+      treeGrp.strokeCircle(x, y - 10, 20);
+      treeGrp.strokeCircle(x - 12, y + 2, 16);
+      treeGrp.strokeCircle(x + 12, y + 2, 16);
+      
+      obstacles.add(treeGrp);
+      const body = treeGrp.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(36, 36).setOffset(-18, -10);
+    };
 
     // Spawn Trees (Scattered around)
     const treeCoords = [
@@ -103,16 +140,29 @@ export class MapScene extends Phaser.Scene {
       { x: 900, y: 510 }, { x: 1050, y: 180 }, { x: 1350, y: 280 }
     ];
     treeCoords.forEach(c => {
-      const t = this.add.text(c.x, c.y, '🌳', { font: '38px Arial' }).setOrigin(0.5);
-      obstacles.add(t);
-      const body = t.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(30, 30).setOffset(-1, 2);
+      createVectorTree(c.x, c.y);
     });
 
-    // 2. PLAYER CHARACTER (Zelda style geometric hero)
-    // Draw character inside dynamic body (a yellow circular node represents coordinator)
+    // Spawn stylized concrete wall barrier panels (pure white with soft grey outline - matching architectural diagram)
+    const wallCoords = [
+      { x: 380, y: 230, w: 120, h: 10 },
+      { x: 740, y: 450, w: 160, h: 10 },
+      { x: 1010, y: 240, w: 100, h: 10 }
+    ];
+    wallCoords.forEach(w => {
+      const wall = this.add.graphics();
+      wall.fillStyle(0xffffff, 1);
+      wall.lineStyle(1.5, 0x7c9a8f, 0.4);
+      wall.fillRoundedRect(w.x - w.w / 2, w.y - w.h / 2, w.w, w.h, 4);
+      wall.strokeRoundedRect(w.x - w.w / 2, w.y - w.h / 2, w.w, w.h, 4);
+      obstacles.add(wall);
+      const body = wall.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(w.w, w.h).setOffset(-w.w / 2, -w.h / 2);
+    });
+
+    // 2. PLAYER CHARACTER (Clean warm-teal node)
     const playerGraphics = this.make.graphics({ x: 0, y: 0 });
-    playerGraphics.fillStyle(0x66fcf1, 1);
+    playerGraphics.fillStyle(0x7c9a8f, 1);
     playerGraphics.fillCircle(12, 12, 10);
     playerGraphics.lineStyle(2, 0xffffff, 1);
     playerGraphics.strokeCircle(12, 12, 10);
@@ -154,7 +204,7 @@ export class MapScene extends Phaser.Scene {
     this.questZones = this.physics.add.staticGroup();
     this.npcEntities = this.physics.add.staticGroup();
 
-    // Spawn 3 Quest zones along Greenway Spine
+    // Spawn 3 Quest zones along Greenway Spine (Soft pastel colors)
     const questDataList = [
       { id: 1, x: 300, y: mapHeight / 2 + 10, name: '⚔️ 任務 1：通勤衝突' },
       { id: 2, x: 700, y: mapHeight / 2 + 10, name: '⚔️ 任務 2：商住噪音' },
@@ -162,14 +212,14 @@ export class MapScene extends Phaser.Scene {
     ];
 
     questDataList.forEach(q => {
-      // Draw a glowing animated sword or circle
+      // Draw a clean target indicator
       const qMarker = this.add.text(q.x, q.y - 12, '⚔️', { font: '26px Arial' }).setOrigin(0.5);
       qMarker.setData('type', 'quest');
       qMarker.setData('id', q.id);
       this.questZones.add(qMarker);
 
       // Add a label
-      this.add.text(q.x, q.y + 20, q.name, { font: '9px "Noto Sans TC", sans-serif', color: '#45a29e' }).setOrigin(0.5);
+      this.add.text(q.x, q.y + 20, q.name, { font: 'bold 9px "Noto Sans TC", sans-serif', color: '#5c6b63' }).setOrigin(0.5);
     });
 
     // Spawn 6 NPCs representing stakeholders
@@ -183,23 +233,37 @@ export class MapScene extends Phaser.Scene {
     ];
 
     npcCoordsList.forEach(n => {
-      const npcText = this.add.text(n.x, n.y, n.em, { font: '30px Arial' }).setOrigin(0.5);
+      // Pedestal behind NPC
+      const ped = this.add.graphics();
+      ped.fillStyle(0xffffff, 1);
+      ped.lineStyle(1, 0x7c9a8f, 0.3);
+      ped.fillCircle(n.x, n.y + 2, 16);
+      ped.strokeCircle(n.x, n.y + 2, 16);
+      this.npcEntities.add(ped);
+      
+      const body = ped.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(24, 24).setOffset(-12, -12);
+
+      const npcText = this.add.text(n.x, n.y, n.em, { font: '22px Arial' }).setOrigin(0.5);
       npcText.setData('type', 'npc');
       npcText.setData('id', n.id);
       npcText.setData('label', n.label);
-      this.npcEntities.add(npcText);
+      ped.setData('type', 'npc');
+      ped.setData('id', n.id);
+      ped.setData('label', n.label);
 
       // Label
-      this.add.text(n.x, n.y + 22, n.label, { font: '8px "Noto Sans TC", sans-serif', color: '#888888' }).setOrigin(0.5);
+      this.add.text(n.x, n.y + 22, n.label, { font: '8px "Noto Sans TC", sans-serif', color: '#5c6b63' }).setOrigin(0.5);
     });
 
     // 6. PROMPT POPUP
     this.promptTextObj = this.add.text(width / 2, height / 2, '', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#66fcf1',
-      backgroundColor: 'rgba(0,0,0,0.85)',
-      padding: { x: 10, y: 6 }
+      color: '#2c3e35',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      padding: { x: 12, y: 8 }
     }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setDepth(20);
+    this.promptTextObj.setStroke('#7c9a8f', 1);
 
     // 7. CAMERA SETUP
     this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
@@ -229,7 +293,7 @@ export class MapScene extends Phaser.Scene {
       }
     }
 
-    if (this.isDialogueActive) {
+    if (this.isDialogueActive || this.isClashActive) {
       this.player.setVelocity(0, 0);
       return;
     }
@@ -272,10 +336,10 @@ export class MapScene extends Phaser.Scene {
     
     this.activeInteractiveObj = { type, id, ref: obj };
 
-    // Set interactive prompt position and text
+    // Set interactive prompt position and text (Clean green theme)
     this.promptTextObj.setText(
       type === 'quest'
-        ? `▶ 按【 E 】鍵啟動公共空間協商 ⚔️`
+        ? `▶ 按【 E 】鍵啟動公共空間協商 ⚔`
         : `▶ 按【 E 】鍵與【${obj.getData('label')}】對話 💬`
     );
     this.promptTextObj.setPosition(this.cameras.main.width / 2, this.cameras.main.height - 110);
@@ -307,9 +371,9 @@ export class MapScene extends Phaser.Scene {
         12: '🚲 通勤族：「我們只希望自行車動線清楚，別被大廣場或亂切的步道擋住，安全通過是最高守則！」',
         13: '🌿 生態學者：「自然是台南的靈魂。請守護原生喬木林帶，夜間降低眩光，鳥兒和昆蟲需要黑暗棲地！」',
         14: '🎸 青年樂手：「我們希望有不插電吉他野台和滑板聚集空間，讓古都有更多朝氣與創意的舞台！」',
-        15: '🗣️ 抱怨老張：「哼！做什麼建設都是白花錢，治安變差、房價下跌都是那些大樹和沒燈造成的啦！」'
+        15: '🗣️ 抱怨老張：「哼！做什麼建設都是白花錢，治安變差、房價下跌都是那些大樹 and 沒燈造成的啦！」'
       };
-      this.openNPCBriefDialog(dialogsMap[npcId] || '「你好，協官！」');
+      this.openNPCBriefDialog(dialogsMap[npcId] || '「你好，協商官！」');
     }
   }
 
@@ -324,22 +388,22 @@ export class MapScene extends Phaser.Scene {
     // Container
     this.dialogueOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
 
-    // Dim Background
-    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.4);
+    // Dim Background (translucent grey-slate instead of pure black)
+    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x2f3e46, 0.4);
     this.dialogueOverlay.add(dim);
 
-    // Dialog Box Shape
+    // Dialog Box Shape (Rounded White Panel)
     const box = this.add.graphics();
-    box.fillStyle(0x0f1622, 0.95);
-    box.lineStyle(2, 0x66fcf1, 0.7);
+    box.fillStyle(0xffffff, 0.98);
+    box.lineStyle(1.5, 0x7c9a8f, 0.5);
     box.fillRoundedRect(width / 2 - 300, height / 2 - 60, 600, 120, 8);
     box.strokeRoundedRect(width / 2 - 300, height / 2 - 60, 600, 120, 8);
     this.dialogueOverlay.add(box);
 
-    // Text content
+    // Text content (Dark Slate Green)
     const txt = this.add.text(width / 2 - 275, height / 2 - 35, text, {
       font: '14px "Noto Sans TC", sans-serif',
-      color: '#ffffff',
+      color: '#2f3e46',
       wordWrap: { width: 550, useAdvancedWrap: true },
       lineSpacing: 8
     });
@@ -348,7 +412,7 @@ export class MapScene extends Phaser.Scene {
     // Tip hint
     const hint = this.add.text(width / 2, height / 2 + 35, '按【 空白鍵 (SPACE) 】或點擊以關閉', {
       font: '10px "Noto Sans TC", sans-serif',
-      color: '#45a29e'
+      color: '#7c9a8f'
     }).setOrigin(0.5);
     this.dialogueOverlay.add(hint);
 
@@ -356,7 +420,185 @@ export class MapScene extends Phaser.Scene {
     dim.setInteractive().on('pointerdown', () => this.closeDialogue());
   }
 
+  // ANIMATED STAKEHOLDER CLASH/ARGUMENT ANIMATION
+  private playClashAnimation(quest: QuestData, onComplete: () => void) {
+    this.isClashActive = true;
+    this.player.setVelocity(0, 0);
+
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Create container for animation items
+    const clashContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(35);
+
+    // Dim background
+    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x2f3e46, 0.7);
+    clashContainer.add(dim);
+
+    // VS center label
+    const vsCircle = this.add.circle(width / 2, height / 2 - 60, 45, 0xd98880, 0.9).setStrokeStyle(2, 0xffffff, 1);
+    const vsText = this.add.text(width / 2, height / 2 - 60, 'VS', {
+      font: 'bold 28px "Inter", sans-serif',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    clashContainer.add([vsCircle, vsText]);
+
+    // Bouncing tween on VS label
+    this.tweens.add({
+      targets: vsCircle,
+      scale: 1.15,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // 1. Proponent Card (Left)
+    const pCard = this.add.container(-220, height / 2 - 60);
+    const pBg = this.add.graphics();
+    pBg.fillStyle(0xffffff, 0.95);
+    pBg.lineStyle(1.5, 0x8caf97, 0.8);
+    pBg.fillRoundedRect(-140, -100, 260, 200, 10);
+    pBg.strokeRoundedRect(-140, -100, 260, 200, 10);
+    
+    const pAvatar = this.add.text(-10, -50, quest.npcAvatar, { font: '48px Arial' }).setOrigin(0.5);
+    const pTitle = this.add.text(-10, -5, quest.npcName, {
+      font: 'bold 15px "Noto Sans TC", sans-serif',
+      color: '#2c3e35'
+    }).setOrigin(0.5);
+    const pDesc = this.add.text(-10, 40, quest.npcQuote, {
+      font: 'italic 11px "Noto Sans TC", sans-serif',
+      color: '#5c6b63',
+      wordWrap: { width: 220, useAdvancedWrap: true },
+      align: 'center'
+    }).setOrigin(0.5);
+    pCard.add([pBg, pAvatar, pTitle, pDesc]);
+    clashContainer.add(pCard);
+
+    // 2. Opponent Card (Right)
+    const oCard = this.add.container(width + 220, height / 2 - 60);
+    const oBg = this.add.graphics();
+    oBg.fillStyle(0xffffff, 0.95);
+    oBg.lineStyle(1.5, 0xd98880, 0.8);
+    oBg.fillRoundedRect(-120, -100, 260, 200, 10);
+    oBg.strokeRoundedRect(-120, -100, 260, 200, 10);
+
+    const oAvatar = this.add.text(10, -50, quest.conflictAvatar, { font: '48px Arial' }).setOrigin(0.5);
+    const oTitle = this.add.text(10, -5, `${quest.conflictName}`, {
+      font: 'bold 15px "Noto Sans TC", sans-serif',
+      color: '#2c3e35'
+    }).setOrigin(0.5);
+    const oDesc = this.add.text(10, 40, quest.conflictQuote, {
+      font: 'italic 11px "Noto Sans TC", sans-serif',
+      color: '#5c6b63',
+      wordWrap: { width: 220, useAdvancedWrap: true },
+      align: 'center'
+    }).setOrigin(0.5);
+    oCard.add([oBg, oAvatar, oTitle, oDesc]);
+    clashContainer.add(oCard);
+
+    // Slide in cards
+    this.tweens.add({
+      targets: pCard,
+      x: width / 2 - 160,
+      duration: 600,
+      ease: 'Back.easeOut'
+    });
+
+    this.tweens.add({
+      targets: oCard,
+      x: width / 2 + 160,
+      duration: 600,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Shaking & head-bumping collision animation
+        this.tweens.add({
+          targets: pCard,
+          x: width / 2 - 130,
+          duration: 150,
+          yoyo: true,
+          repeat: 6,
+          ease: 'Sine.easeInOut'
+        });
+
+        this.tweens.add({
+          targets: oCard,
+          x: width / 2 + 130,
+          duration: 150,
+          yoyo: true,
+          repeat: 6,
+          ease: 'Sine.easeInOut'
+        });
+
+        // Trigger anger particle bursts
+        const particleTimer = this.time.addEvent({
+          delay: 200,
+          callback: () => {
+            const rx = width / 2 + Phaser.Math.Between(-60, 60);
+            const ry = height / 2 - 60 + Phaser.Math.Between(-80, 80);
+            const particleEmoji = ['💢', '💥', '💬', '⚡', '🔥'][Phaser.Math.Between(0, 4)];
+            const partText = this.add.text(rx, ry, particleEmoji, { font: '22px Arial' }).setOrigin(0.5).setScrollFactor(0).setDepth(36);
+            clashContainer.add(partText);
+
+            this.tweens.add({
+              targets: partText,
+              y: ry - 40,
+              scale: 1.5,
+              alpha: 0,
+              duration: 400,
+              onComplete: () => partText.destroy()
+            });
+          },
+          repeat: 12
+        });
+
+        // Camera shakes slightly
+        this.cameras.main.shake(1200, 0.003);
+
+        // Add "Start Negotiate" button
+        const startBtnBox = this.add.graphics();
+        startBtnBox.fillStyle(0x7c9a8f, 1);
+        startBtnBox.lineStyle(1.5, 0xffffff, 1);
+        startBtnBox.fillRoundedRect(width / 2 - 90, height - 120, 180, 40, 8);
+        startBtnBox.strokeRoundedRect(width / 2 - 90, height - 120, 180, 40, 8);
+        clashContainer.add(startBtnBox);
+
+        const startBtnText = this.add.text(width / 2, height - 100, '進行公共協商 🤝', {
+          font: 'bold 13px "Noto Sans TC", sans-serif',
+          color: '#ffffff'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        clashContainer.add(startBtnText);
+
+        startBtnText.on('pointerover', () => startBtnText.setScale(1.05));
+        startBtnText.on('pointerout', () => startBtnText.setScale(1));
+        
+        const finishClash = () => {
+          particleTimer.destroy();
+          this.tweens.add({
+            targets: clashContainer,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => {
+              clashContainer.destroy();
+              this.isClashActive = false;
+              onComplete();
+            }
+          });
+        };
+
+        startBtnText.on('pointerdown', finishClash);
+        dim.setInteractive().on('pointerdown', finishClash);
+      }
+    });
+  }
+
   private openQuestDialogue(quest: QuestData) {
+    this.playClashAnimation(quest, () => {
+      this.openQuestDialogueOptions(quest);
+    });
+  }
+
+  private openQuestDialogueOptions(quest: QuestData) {
     this.isDialogueActive = true;
     this.activeQuest = quest;
     this.activeChoiceIndex = -1;
@@ -367,14 +609,14 @@ export class MapScene extends Phaser.Scene {
 
     this.dialogueOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
 
-    // Dim bg
-    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.65);
+    // Dim bg (soft grey translucent)
+    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x2f3e46, 0.55);
     this.dialogueOverlay.add(dim);
 
-    // Large Dialog Box
+    // Large Dialog Box (White Panel)
     const box = this.add.graphics();
-    box.fillStyle(0x0f1622, 0.98);
-    box.lineStyle(2, 0x66fcf1, 0.8);
+    box.fillStyle(0xffffff, 0.98);
+    box.lineStyle(1.5, 0x7c9a8f, 0.5);
     box.fillRoundedRect(width / 2 - 350, 40, 700, height - 80, 10);
     box.strokeRoundedRect(width / 2 - 350, 40, 700, height - 80, 10);
     this.dialogueOverlay.add(box);
@@ -382,75 +624,75 @@ export class MapScene extends Phaser.Scene {
     // Quest Title & Desc
     const titleText = this.add.text(width / 2 - 320, 65, quest.title, {
       font: 'bold 18px "Noto Sans TC", sans-serif',
-      color: '#66fcf1'
+      color: '#2c3e35'
     });
     this.dialogueOverlay.add(titleText);
 
     const descText = this.add.text(width / 2 - 320, 100, quest.description, {
       font: '12px "Noto Sans TC", sans-serif',
-      color: '#8899a6',
+      color: '#5c6b63',
       wordWrap: { width: 640 }
     });
     this.dialogueOverlay.add(descText);
 
     // NPC Dialog bubble
-    const npcTitle = this.add.text(width / 2 - 320, 140, quest.npcName, {
+    const npcTitle = this.add.text(width / 2 - 320, 140, `${quest.npcName} 主張：`, {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#22c55e'
+      color: '#7c9a8f'
     });
     this.dialogueOverlay.add(npcTitle);
 
-    const npcQuote = this.add.text(width / 2 - 320, 160, quest.npcQuote, {
+    const npcQuote = this.add.text(width / 2 - 320, 158, quest.npcQuote, {
       font: 'italic 12px "Noto Sans TC", sans-serif',
-      color: '#c5c6c7',
+      color: '#2f3e46',
       wordWrap: { width: 640 }
     });
     this.dialogueOverlay.add(npcQuote);
 
     // Antagonist Dialog bubble
-    const antTitle = this.add.text(width / 2 - 320, 205, `${quest.conflictName} (${quest.conflictType}) 🗣️`, {
+    const antTitle = this.add.text(width / 2 - 320, 205, `${quest.conflictName} (${quest.conflictType}) 主張：`, {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#ef4444'
+      color: '#d98880'
     });
     this.dialogueOverlay.add(antTitle);
 
     const antQuote = this.add.text(width / 2 - 320, 222, quest.conflictQuote, {
       font: 'italic 12px "Noto Sans TC", sans-serif',
-      color: '#f97316',
+      color: '#2f3e46',
       wordWrap: { width: 640 }
     });
     this.dialogueOverlay.add(antQuote);
 
     // Choices Title
-    const chooseLabel = this.add.text(width / 2 - 320, 280, '🛠️ 選擇你的協商對策方案 (鍵盤按1,2,3)：', {
+    const chooseLabel = this.add.text(width / 2 - 320, 280, '🛠️ 選擇您的協商對策方案 (鍵盤按 1, 2, 3)：', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#66fcf1'
+      color: '#2c3e35'
     });
     this.dialogueOverlay.add(chooseLabel);
 
-    // Draw 3 Choices
+    // Draw 3 Choices (Clean pastel boxes)
     quest.choices.forEach((choice, idx) => {
       const yCoord = 310 + idx * 62;
       
       const choiceBox = this.add.graphics();
-      choiceBox.fillStyle(0x1f2833, 0.6);
-      choiceBox.lineStyle(1, 0x45a29e, 0.3);
+      choiceBox.fillStyle(0xfdfbf7, 0.9);
+      choiceBox.lineStyle(1, 0xe6e4dc, 0.8);
       choiceBox.fillRoundedRect(width / 2 - 320, yCoord, 640, 52, 6);
       choiceBox.strokeRoundedRect(width / 2 - 320, yCoord, 640, 52, 6);
       this.dialogueOverlay?.add(choiceBox);
 
       // Highlighter
       const borderHigh = this.add.graphics();
-      borderHigh.lineStyle(2, 0x66fcf1, 1);
+      borderHigh.lineStyle(2, 0x7c9a8f, 1);
       borderHigh.strokeRoundedRect(width / 2 - 320, yCoord, 640, 52, 6);
       borderHigh.setVisible(false);
       this.dialogueOverlay?.add(borderHigh);
 
       // Choice Text
       const textPrefix = idx === 0 ? '【A】' : idx === 1 ? '【B】' : '【C】';
-      const cTxt = this.add.text(width / 2 - 305, yCoord + 12, `${textPrefix} ${choice.text}`, {
+      const cTxt = this.add.text(width / 2 - 305, yCoord + 10, `${textPrefix} ${choice.text}`, {
         font: 'bold 12px "Noto Sans TC", sans-serif',
-        color: '#ffffff',
+        color: '#2f3e46',
         wordWrap: { width: 610 }
       });
       this.dialogueOverlay?.add(cTxt);
@@ -472,9 +714,9 @@ export class MapScene extends Phaser.Scene {
         })
         .join('  ');
       
-      const effectTxt = this.add.text(width / 2 - 305, yCoord + 32, `數值影響：${effectsStr}`, {
+      const effectTxt = this.add.text(width / 2 - 305, yCoord + 32, `影響預估：${effectsStr}`, {
         font: '9px monospace',
-        color: '#45a29e'
+        color: '#5c6b63'
       });
       this.dialogueOverlay?.add(effectTxt);
 
@@ -484,12 +726,12 @@ export class MapScene extends Phaser.Scene {
 
       hoverZone.on('pointerover', () => {
         borderHigh.setVisible(true);
-        cTxt.setColor('#66fcf1');
+        cTxt.setColor('#7c9a8f');
       });
 
       hoverZone.on('pointerout', () => {
         borderHigh.setVisible(false);
-        cTxt.setColor('#ffffff');
+        cTxt.setColor('#2f3e46');
       });
 
       hoverZone.on('pointerdown', () => {
@@ -528,37 +770,37 @@ export class MapScene extends Phaser.Scene {
     // 4. Clean previous interactive screen container
     this.dialogueOverlay?.destroy();
     
-    // Draw Feedback Dialog Screen
+    // Draw Feedback Dialog Screen (White Box)
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     this.dialogueOverlay = this.add.container(0, 0).setScrollFactor(0).setDepth(30);
 
-    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x2f3e46, 0.4);
     this.dialogueOverlay.add(dim);
 
     const box = this.add.graphics();
-    box.fillStyle(0x0f1622, 0.98);
-    box.lineStyle(2, 0x39ff14, 0.7);
+    box.fillStyle(0xffffff, 0.98);
+    box.lineStyle(2, 0x7c9a8f, 0.7);
     box.fillRoundedRect(width / 2 - 280, height / 2 - 170, 560, 310, 10);
     box.strokeRoundedRect(width / 2 - 280, height / 2 - 170, 560, 310, 10);
     this.dialogueOverlay.add(box);
 
     const resultTitle = this.add.text(width / 2, height / 2 - 135, '✅ 協商方案實施回饋', {
       font: 'bold 18px "Noto Sans TC", sans-serif',
-      color: '#39ff14'
+      color: '#2c3e35'
     }).setOrigin(0.5);
     this.dialogueOverlay.add(resultTitle);
 
     // NPC Feedback
     const nTitle = this.add.text(width / 2 - 240, height / 2 - 95, `倡議代表反應：`, {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#22c55e'
+      color: '#7c9a8f'
     });
     this.dialogueOverlay.add(nTitle);
 
     const nTxt = this.add.text(width / 2 - 240, height / 2 - 75, `「${choice.npcFeedback}」`, {
       font: 'italic 13px "Noto Sans TC", sans-serif',
-      color: '#c5c6c7',
+      color: '#2f3e46',
       wordWrap: { width: 480 }
     });
     this.dialogueOverlay.add(nTxt);
@@ -566,28 +808,28 @@ export class MapScene extends Phaser.Scene {
     // Antagonist Feedback
     const aTitle = this.add.text(width / 2 - 240, height / 2 - 10, `衝突方反應：`, {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#ef4444'
+      color: '#d98880'
     });
     this.dialogueOverlay.add(aTitle);
 
     const aTxt = this.add.text(width / 2 - 240, height / 2 + 10, `「${choice.conflictFeedback}」`, {
       font: 'italic 13px "Noto Sans TC", sans-serif',
-      color: '#f97316',
+      color: '#2f3e46',
       wordWrap: { width: 480 }
     });
     this.dialogueOverlay.add(aTxt);
 
     // Space button to exit
     const closeBox = this.add.graphics();
-    closeBox.fillStyle(0x1f2833, 0.9);
-    closeBox.lineStyle(1, 0x39ff14, 0.8);
+    closeBox.fillStyle(0xffffff, 0.95);
+    closeBox.lineStyle(1.5, 0x7c9a8f, 0.8);
     closeBox.fillRoundedRect(width / 2 - 100, height / 2 + 85, 200, 35, 6);
     closeBox.strokeRoundedRect(width / 2 - 100, height / 2 + 85, 200, 35, 6);
     this.dialogueOverlay.add(closeBox);
 
     const closeTxt = this.add.text(width / 2, height / 2 + 102, '按【 空白鍵 】關閉對話', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.dialogueOverlay.add(closeTxt);
 
@@ -627,7 +869,8 @@ export class MapScene extends Phaser.Scene {
     const width = 1400;
     const height = 700;
 
-    const portal = this.add.circle(width / 2, height / 2 + 10, 30, 0xff007f, 0.6);
+    // Pulse final portal in warm rose pink
+    const portal = this.add.circle(width / 2, height / 2 + 10, 30, 0xf06292, 0.6);
     portal.setName('final_portal');
     portal.setStrokeStyle(2, 0xffffff, 1);
     this.physics.add.existing(portal, true);
@@ -644,9 +887,9 @@ export class MapScene extends Phaser.Scene {
 
     this.add.text(width / 2, height / 2 - 30, '🌟 前往成果發表發表會 🌟', {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#ff007f',
-      backgroundColor: '#000000',
-      padding: { x: 6, y: 3 }
+      color: '#ffffff',
+      backgroundColor: '#7c9a8f',
+      padding: { x: 8, y: 4 }
     }).setOrigin(0.5);
 
     // Collide rules for portal
@@ -701,23 +944,23 @@ export class MapScene extends Phaser.Scene {
   private drawHUD() {
     const width = this.cameras.main.width;
     
-    // HUD Panel Box
+    // HUD Panel Box (White Card Panel)
     const hudBox = this.add.graphics();
-    hudBox.fillStyle(0x0f1622, 0.85);
-    hudBox.lineStyle(1, 0x45a29e, 0.3);
+    hudBox.fillStyle(0xffffff, 0.95);
+    hudBox.lineStyle(1.5, 0x7c9a8f, 0.25);
     hudBox.fillRoundedRect(15, 15, width - 30, 48, 6);
     hudBox.strokeRoundedRect(15, 15, width - 30, 48, 6);
     hudBox.setScrollFactor(0);
     hudBox.setDepth(10);
 
-    // HUD Text Labels
+    // HUD Text Labels (Slate colors)
     const statLabels = [
-      { key: 'residentSatisfaction', label: '居民', x: 30, color: '#22c55e' },
-      { key: 'merchantSatisfaction', label: '商家', x: 140, color: '#eab308' },
-      { key: 'commuteEfficiency', label: '通勤', x: 250, color: '#3b82f6' },
-      { key: 'ecologicalScore', label: '生態', x: 360, color: '#10b981' },
-      { key: 'safetySense', label: '安全', x: 470, color: '#6366f1' },
-      { key: 'activityVitality', label: '活動', x: 580, color: '#a855f7' },
+      { key: 'residentSatisfaction', label: '居民', x: 30, color: '#547c64' },
+      { key: 'merchantSatisfaction', label: '商家', x: 140, color: '#b88c42' },
+      { key: 'commuteEfficiency', label: '通勤', x: 250, color: '#4c6c96' },
+      { key: 'ecologicalScore', label: '生態', x: 360, color: '#3d8c6d' },
+      { key: 'safetySense', label: '安全', x: 470, color: '#545899' },
+      { key: 'activityVitality', label: '活動', x: 580, color: '#885899' },
     ];
 
     statLabels.forEach(item => {
@@ -729,9 +972,9 @@ export class MapScene extends Phaser.Scene {
       
       this.hudTexts[item.key] = t;
 
-      // Small grey bar outline
+      // Small beige bar outline
       const barBg = this.add.graphics();
-      barBg.fillStyle(0x1a202c, 1);
+      barBg.fillStyle(0xe6e4dc, 1);
       barBg.fillRect(item.x, 39, 80, 5);
       barBg.setScrollFactor(0).setDepth(11);
 
@@ -741,15 +984,15 @@ export class MapScene extends Phaser.Scene {
       this.hudBars[item.key] = bar;
     });
 
-    // Conflict value indicator (Far right)
+    // Conflict value indicator (Far right - pastel red)
     const conText = this.add.text(width - 290, 22, '衝突值: 20', {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#ff3131'
+      color: '#c95e53'
     }).setScrollFactor(0).setDepth(11);
     this.hudTexts['conflictValue'] = conText;
 
     const conBarBg = this.add.graphics();
-    conBarBg.fillStyle(0x1a202c, 1);
+    conBarBg.fillStyle(0xe6e4dc, 1);
     conBarBg.fillRect(width - 290, 39, 90, 5);
     conBarBg.setScrollFactor(0).setDepth(11);
 
@@ -760,13 +1003,13 @@ export class MapScene extends Phaser.Scene {
     // Progress Level Indicator
     const progText = this.add.text(width - 170, 22, '任務進度: 0/3', {
       font: 'bold 11px "Noto Sans TC", sans-serif',
-      color: '#66fcf1'
+      color: '#2c3e35'
     }).setScrollFactor(0).setDepth(11);
     this.hudTexts['progress'] = progText;
 
     const charText = this.add.text(width - 170, 38, `角色: ${this.registry.get('selectedCharName')}`, {
       font: '9px "Noto Sans TC", sans-serif',
-      color: '#8899a6'
+      color: '#5c6b63'
     }).setScrollFactor(0).setDepth(11);
     this.hudTexts['characterName'] = charText;
   }
@@ -783,15 +1026,15 @@ export class MapScene extends Phaser.Scene {
 
     this.hudTexts['progress'].setText(`任務進度: ${totalCompleted}/3`);
 
-    // Update Stats text and drawing bars
+    // Update Stats text and drawing bars (Organic Pastel colors)
     const statConfig = [
-      { key: 'residentSatisfaction', color: 0x22c55e, label: '居民', width: 80 },
-      { key: 'merchantSatisfaction', color: 0xeab308, label: '商家', width: 80 },
-      { key: 'commuteEfficiency', color: 0x3b82f6, label: '通勤', width: 80 },
-      { key: 'ecologicalScore', color: 0x10b981, label: '生態', width: 80 },
-      { key: 'safetySense', color: 0x6366f1, label: '安全', width: 80 },
-      { key: 'activityVitality', color: 0xa855f7, label: '活動', width: 80 },
-      { key: 'conflictValue', color: 0xff3131, label: '衝突值', width: 90 }
+      { key: 'residentSatisfaction', color: 0x8caf97, label: '居民', width: 80 },
+      { key: 'merchantSatisfaction', color: 0xe6c280, label: '商家', width: 80 },
+      { key: 'commuteEfficiency', color: 0x8fa8c6, label: '通勤', width: 80 },
+      { key: 'ecologicalScore', color: 0x7cb79e, label: '生態', width: 80 },
+      { key: 'safetySense', color: 0x9a9ec9, label: '安全', width: 80 },
+      { key: 'activityVitality', color: 0xbf9ac9, label: '活動', width: 80 },
+      { key: 'conflictValue', color: 0xd98880, label: '衝突值', width: 90 }
     ];
 
     statConfig.forEach(item => {

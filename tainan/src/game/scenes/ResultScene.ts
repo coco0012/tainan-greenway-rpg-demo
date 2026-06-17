@@ -136,25 +136,25 @@ export class ResultScene extends Phaser.Scene {
     // Calculate title
     this.awardData = this.calculateAward(this.stats);
 
-    // Background
-    this.add.rectangle(width / 2, height / 2, width, height, 0x0b0c10);
-    this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0x1f2833, 0.05);
+    // Background (Light beige)
+    this.add.rectangle(width / 2, height / 2, width, height, 0xf4f3ef);
+    this.add.grid(width / 2, height / 2, width, height, 40, 40, 0, 0, 0xe6e4dc, 0.4);
 
     // Title text
     this.add.text(width / 2, 25, '🎨 綠園道共創發表成果與專案頒獎', {
       font: 'bold 20px "Noto Sans TC", sans-serif',
-      color: '#ffffff'
+      color: '#2c3e35'
     }).setOrigin(0.5);
 
     // 1. DRAW 2.5D STAGED GREENWAY SCHEMATIC
     const mapBox = this.add.graphics();
-    mapBox.fillStyle(0x0a0f18, 0.9);
-    mapBox.lineStyle(1, 0x45a29e, 0.3);
+    mapBox.fillStyle(0xffffff, 0.95);
+    mapBox.lineStyle(1.5, 0x7c9a8f, 0.3);
     mapBox.fillRoundedRect(35, 65, width - 70, 260, 10);
     mapBox.strokeRoundedRect(35, 65, width - 70, 260, 10);
 
-    // Draw green spine horizontal strip
-    this.add.rectangle(width / 2, 195, width - 70, 50, 0x1f3b2e);
+    // Draw green spine horizontal strip (Soft pastel greenway path)
+    this.add.rectangle(width / 2, 195, width - 70, 50, 0xc2d6c4);
 
     // Static elements in background
     this.add.text(100, 140, '🏠', { font: '26px Arial' }).setOrigin(0.5).setAlpha(0.6);
@@ -163,28 +163,28 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(700, 130, '🌲', { font: '24px Arial' }).setOrigin(0.5).setAlpha(0.6);
 
     this.add.text(width / 2, 310, '💡 滑鼠移到市民頭像上，聽聽他們對最終方案的反應對白！', {
-      font: '10px "Noto Sans TC", sans-serif',
-      color: '#45a29e'
+      font: 'bold 11px "Noto Sans TC", sans-serif',
+      color: '#5c6b63'
     }).setOrigin(0.5);
 
     // Render interactive citizens
     CITIZENS.forEach(cit => {
       // Ring color depending on their stats score
-      let colorVal = 0x888888;
+      let colorVal = 0x7c9a8f;
       if (cit.statKey !== 'general') {
         const val = this.stats[cit.statKey as keyof GameStats];
         if (cit.id === 'rioter') {
-          colorVal = this.stats.conflictValue > 45 ? 0xff3131 : 0x39ff14;
+          colorVal = this.stats.conflictValue > 45 ? 0xd98880 : 0x8caf97;
         } else if (val >= 55) {
-          colorVal = 0x39ff14;
+          colorVal = 0x8caf97;
         } else if (val < 45) {
-          colorVal = 0xff3131;
+          colorVal = 0xd98880;
         }
       }
 
       // Outer ring graphics
       const ring = this.add.graphics();
-      ring.lineStyle(2, colorVal, 0.7);
+      ring.lineStyle(2.5, colorVal, 0.7);
       ring.strokeCircle(cit.x, cit.y, 22);
 
       // Emoji Avatar
@@ -195,7 +195,7 @@ export class ResultScene extends Phaser.Scene {
       // Hover name tag
       this.add.text(cit.x, cit.y + 32, cit.name, {
         font: 'bold 9px "Noto Sans TC", sans-serif',
-        color: '#8899a6'
+        color: '#2f3e46'
       }).setOrigin(0.5);
 
       av.on('pointerover', () => {
@@ -227,11 +227,11 @@ export class ResultScene extends Phaser.Scene {
 
     const speechText = cit.getBubble(this.stats);
 
-    // Styled text object
+    // Styled text object (White background, charcoal text)
     const txt = this.add.text(0, 0, `${cit.name} (${cit.role}):\n${speechText}`, {
       font: '11px "Noto Sans TC", sans-serif',
-      color: '#ffffff',
-      backgroundColor: '#000000',
+      color: '#2f3e46',
+      backgroundColor: '#ffffff',
       padding: { x: 10, y: 6 },
       wordWrap: { width: 200 },
       lineSpacing: 4
@@ -239,7 +239,7 @@ export class ResultScene extends Phaser.Scene {
 
     // Border graphics for speech bubble
     const border = this.add.graphics();
-    border.lineStyle(1.5, 0x66fcf1, 0.9);
+    border.lineStyle(1.5, 0x7c9a8f, 0.8);
     border.strokeRect(txt.x - txt.width / 2, txt.y - txt.height / 2, txt.width, txt.height);
     
     this.bubbleContainer.add(txt);
@@ -255,9 +255,9 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private drawAwardPanel(width: number) {
-    // Left Box: Badge & Title
+    // Left Box: Badge & Title (White Card)
     const badgeBox = this.add.graphics();
-    badgeBox.fillStyle(0x1f2833, 0.85);
+    badgeBox.fillStyle(0xffffff, 0.95);
     badgeBox.lineStyle(1.5, this.awardData.color, 0.8);
     badgeBox.fillRoundedRect(35, 345, 280, 175, 8);
     badgeBox.strokeRoundedRect(35, 345, 280, 175, 8);
@@ -278,47 +278,47 @@ export class ResultScene extends Phaser.Scene {
       color: this.awardData.textColor
     }).setOrigin(0.5);
 
-    // Right Box: Statistics Report Table
+    // Right Box: Statistics Report Table (White Card)
     const reportBox = this.add.graphics();
-    reportBox.fillStyle(0x0f1622, 0.95);
-    reportBox.lineStyle(1, 0x1f2833, 0.5);
+    reportBox.fillStyle(0xffffff, 0.95);
+    reportBox.lineStyle(1.5, 0x7c9a8f, 0.2);
     reportBox.fillRoundedRect(330, 345, width - 365, 175, 8);
     reportBox.strokeRoundedRect(330, 345, width - 365, 175, 8);
 
     this.add.text(350, 360, '📊 協商績效總覽：', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#66fcf1'
+      color: '#2c3e35'
     });
 
     const statRows = [
-      { label: '居民滿意', val: this.stats.residentSatisfaction, x: 350, y: 390, c: '#22c55e' },
-      { label: '商家滿意', val: this.stats.merchantSatisfaction, x: 350, y: 420, c: '#eab308' },
-      { label: '通勤效率', val: this.stats.commuteEfficiency, x: 350, y: 450, c: '#3b82f6' },
+      { label: '居民滿意', val: this.stats.residentSatisfaction, x: 350, y: 390, c: '#547c64' },
+      { label: '商家滿意', val: this.stats.merchantSatisfaction, x: 350, y: 420, c: '#b88c42' },
+      { label: '通勤效率', val: this.stats.commuteEfficiency, x: 350, y: 450, c: '#4c6c96' },
       
-      { label: '生態分數', val: this.stats.ecologicalScore, x: 500, y: 390, c: '#10b981' },
-      { label: '安全感', val: this.stats.safetySense, x: 500, y: 420, c: '#6366f1' },
-      { label: '活動活力', val: this.stats.activityVitality, x: 500, y: 450, c: '#a855f7' }
+      { label: '生態分數', val: this.stats.ecologicalScore, x: 500, y: 390, c: '#3d8c6d' },
+      { label: '安全感', val: this.stats.safetySense, x: 500, y: 420, c: '#545899' },
+      { label: '活動活力', val: this.stats.activityVitality, x: 500, y: 450, c: '#885899' }
     ];
 
     statRows.forEach(item => {
-      this.add.text(item.x, item.y, `${item.label}:`, { font: '11px "Noto Sans TC", sans-serif', color: '#8899a6' });
+      this.add.text(item.x, item.y, `${item.label}:`, { font: '11px "Noto Sans TC", sans-serif', color: '#5c6b63' });
       this.add.text(item.x + 60, item.y, `${item.val}`, { font: 'bold 11px monospace', color: item.c });
     });
 
     // Conflict value summary
-    const conflictStyle = this.stats.conflictValue > 45 ? '#ff3131' : '#39ff14';
-    this.add.text(350, 485, `最終衝突值：`, { font: 'bold 11px "Noto Sans TC", sans-serif', color: '#ff3131' });
-    this.add.text(430, 485, `${this.stats.conflictValue} / 100`, { font: 'bold 11px monospace', color: conflictStyle });
+    const conflictColorStr = this.stats.conflictValue > 45 ? '#c95e53' : '#547c64';
+    this.add.text(350, 485, `最終衝突值：`, { font: 'bold 11px "Noto Sans TC", sans-serif', color: '#c95e53' });
+    this.add.text(430, 485, `${this.stats.conflictValue} / 100`, { font: 'bold 11px monospace', color: conflictColorStr });
 
     // Title description
     this.add.text(630, 360, '📜 規劃考評回顧：', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#45a29e'
+      color: '#7c9a8f'
     });
 
     this.add.text(630, 385, this.awardData.desc, {
       font: '11px "Noto Sans TC", sans-serif',
-      color: '#c5c6c7',
+      color: '#2f3e46',
       wordWrap: { width: width - 660, useAdvancedWrap: true },
       lineSpacing: 5
     });
@@ -329,14 +329,14 @@ export class ResultScene extends Phaser.Scene {
     this.input.keyboard?.once('keydown-R', () => this.replay());
 
     const btnBox = this.add.graphics();
-    btnBox.fillStyle(0x39ff14, 0.95);
-    btnBox.lineStyle(2, 0xffffff, 0.5);
+    btnBox.fillStyle(0x7c9a8f, 1);
+    btnBox.lineStyle(1.5, 0xffffff, 1);
     btnBox.fillRoundedRect(width - 165, height - 48, 130, 35, 6);
     btnBox.strokeRoundedRect(width - 165, height - 48, 130, 35, 6);
 
     const btnText = this.add.text(width - 100, height - 31, '重新遊玩 (R)', {
       font: 'bold 12px "Noto Sans TC", sans-serif',
-      color: '#000000'
+      color: '#ffffff'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     btnText.on('pointerover', () => btnText.setScale(1.05));
@@ -353,8 +353,8 @@ export class ResultScene extends Phaser.Scene {
       return {
         title: '混亂規劃師',
         badge: '💥',
-        color: 0xff3131,
-        textColor: '#ff3131',
+        color: 0xd98880,
+        textColor: '#c95e53',
         desc: '你規劃的綠園道充斥著噪音糾紛與居民投訴，商業、通勤與生態利益完全失衡，這無疑是一個動盪的都市混亂現場！'
       };
     }
@@ -362,8 +362,8 @@ export class ResultScene extends Phaser.Scene {
       return {
         title: '綠色守護者',
         badge: '🌿',
-        color: 0x10b981,
-        textColor: '#10b981',
+        color: 0x7cb79e,
+        textColor: '#3d8c6d',
         desc: '你成功為府城保留了寶貴的原生林帶與生物核心棲地！暗空暖燈守護了夜行動物的安寧，生態效益非常卓越！'
       };
     }
@@ -371,8 +371,8 @@ export class ResultScene extends Phaser.Scene {
       return {
         title: '活力策展人',
         badge: '🎸',
-        color: 0xa855f7,
-        textColor: '#a855f7',
+        color: 0xbf9ac9,
+        textColor: '#885899',
         desc: '你打造的綠廊活力爆表！滑板青年、街頭樂手與特色市集交匯於此，店面高朋滿座，是個熱鬧非凡的市民舞台！'
       };
     }
@@ -380,8 +380,8 @@ export class ResultScene extends Phaser.Scene {
       return {
         title: '流線規劃師',
         badge: '🚲',
-        color: 0x3b82f6,
-        textColor: '#3b82f6',
+        color: 0x8fa8c6,
+        textColor: '#4c6c96',
         desc: '你極佳地梳理了人行與單車流線，通道安全性與效率奇高。通勤族在綠意中流暢穿梭，效率滿分！'
       };
     }
@@ -389,16 +389,16 @@ export class ResultScene extends Phaser.Scene {
       return {
         title: '衝突調停者',
         badge: '🤝',
-        color: 0x66fcf1,
-        textColor: '#66fcf1',
+        color: 0x7c9a8f,
+        textColor: '#2c3e35',
         desc: '你是公共協商談判的高超調停專家！用智慧與高度分流的手段完美化解了鄰里摩擦，創造了極高的社會和諧度！'
       };
     }
     return {
       title: '城市共感設計師',
       badge: '📐',
-      color: 0xf59e0b,
-      textColor: '#f59e0b',
+      color: 0xe6c280,
+      textColor: '#b88c42',
       desc: '你在居民清靜、商家利益、單車效率、生態綠化與安全照明的拉扯中，尋找到了最平衡的公約數，打造出一個兼顧包容與發展的新台南地標！'
     };
   }
