@@ -37,6 +37,10 @@ export class BootScene extends Phaser.Scene {
       progressBox.destroy();
       loadingText.destroy();
     });
+
+    // Preload custom images
+    this.load.image('ground_2_5d', 'assets/ground_2_5d.png');
+    this.load.image('shadow', 'assets/shadow.png');
   }
 
   create() {
@@ -427,8 +431,26 @@ export class BootScene extends Phaser.Scene {
     g.lineStyle(1.5, outlineColor, 1);
     g.strokeCircle(32, 26, 16);
     g.strokeTriangle(24, 28, 16, 56, 32, 46);
-    g.strokeTriangle(40, 28, 48, 56, 32, 46);
     g.generateTexture('medal_bronze', 64, 64);
+    g.destroy();
+
+    // --- 17. FLAG MARKER (48x48) ---
+    g = this.add.graphics();
+    // Pole (Grey)
+    g.fillStyle(0x718096, 1);
+    g.fillRect(20, 8, 4, 32);
+    // Flag banner (Pastel Gold/Yellow)
+    g.fillStyle(0xe6c280, 1);
+    g.fillTriangle(24, 8, 42, 16, 24, 24);
+    // Flag base stand
+    g.fillStyle(0x2c3e35, 1);
+    g.fillRect(14, 38, 16, 4);
+    // Outlines
+    g.lineStyle(1.5, outlineColor, 1);
+    g.strokeRect(20, 8, 4, 32);
+    g.strokeTriangle(24, 8, 42, 16, 24, 24);
+    g.strokeRect(14, 38, 16, 4);
+    g.generateTexture('flag_marker', 48, 48);
     g.destroy();
   }
 }

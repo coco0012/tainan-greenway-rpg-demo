@@ -320,9 +320,18 @@ export class IntroScene extends Phaser.Scene {
       borderGlow.setVisible(false);
       this.tempElements.push(borderGlow);
 
-      // Avatar
-      const avText = this.add.text(x, y - 40, char.avatar, { font: '36px Arial' }).setOrigin(0.5);
-      this.tempElements.push(avText);
+      // Avatar sprite instead of emoji
+      const textureMap: Record<string, string> = {
+        resident: 'npc_resident',
+        merchant: 'npc_merchant',
+        commuter: 'npc_commuter',
+        ecology: 'npc_ecology',
+        youth: 'npc_youth',
+        designer: 'player'
+      };
+      const texKey = textureMap[char.id] || 'player';
+      const avSprite = this.add.sprite(x, y - 40, texKey).setScale(1.3);
+      this.tempElements.push(avSprite);
 
       // Name
       const nameText = this.add.text(x, y + 2, char.name, {
@@ -353,12 +362,12 @@ export class IntroScene extends Phaser.Scene {
 
       hitArea.on('pointerover', () => {
         borderGlow.setVisible(true);
-        avText.setScale(1.15);
+        avSprite.setScale(1.45);
       });
 
       hitArea.on('pointerout', () => {
         borderGlow.setVisible(false);
-        avText.setScale(1);
+        avSprite.setScale(1.3);
       });
 
       hitArea.on('pointerdown', () => {
