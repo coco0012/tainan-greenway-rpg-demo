@@ -75,41 +75,30 @@ export class MapScene extends Phaser.Scene {
     // Environment Colliders Group (houses/stores/trees)
     const obstacles = this.physics.add.staticGroup();
 
-    // Helper to draw clean white circle pedestals under building emojis
-    const createBuildingPedestal = (x: number, y: number, emoji: string, isBig: boolean = false) => {
-      const radius = isBig ? 26 : 22;
-      const ped = this.add.graphics();
-      ped.fillStyle(0xffffff, 1);
-      ped.lineStyle(1.5, 0x7c9a8f, 0.4);
-      ped.fillCircle(x, y + 4, radius);
-      ped.strokeCircle(x, y + 4, radius);
-      obstacles.add(ped);
-
-      const txt = this.add.text(x, y, emoji, { font: isBig ? '34px Arial' : '30px Arial' }).setOrigin(0.5);
-      // Setup bounding box directly on physics static body
-      const body = ped.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(radius * 1.5, radius * 1.5).setOffset(-radius * 0.75, -radius * 0.75);
-      return txt;
-    };
-
-    // Spawn Buildings (North side = Residential, South side = Shops)
+    // Spawn Vector Buildings (using the dynamically preloaded house and shop textures)
     const houseCoords = [
-      { x: 120, y: 180, em: '🏠' }, { x: 250, y: 160, em: '🏠' },
-      { x: 800, y: 170, em: '🏠' }, { x: 950, y: 180, em: '🏠' }
+      { x: 120, y: 180 }, { x: 250, y: 160 },
+      { x: 800, y: 170 }, { x: 950, y: 180 }
     ];
     houseCoords.forEach(c => {
-      createBuildingPedestal(c.x, c.y, c.em);
+      const h = this.add.sprite(c.x, c.y, 'house');
+      obstacles.add(h);
+      const body = h.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(38, 38).setOffset(0, 8);
     });
 
     const shopCoords = [
-      { x: 450, y: 530, em: '🏪' }, { x: 600, y: 550, em: '☕' },
-      { x: 780, y: 530, em: '🛍️' }, { x: 1250, y: 540, em: '🏪' }
+      { x: 450, y: 530 }, { x: 600, y: 550 },
+      { x: 780, y: 530 }, { x: 1250, y: 540 }
     ];
     shopCoords.forEach(c => {
-      createBuildingPedestal(c.x, c.y, c.em);
+      const s = this.add.sprite(c.x, c.y, 'shop');
+      obstacles.add(s);
+      const body = s.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(42, 42).setOffset(0, 6);
     });
 
-    // Helper to draw clean vector trees (overlapping soft green circles) instead of basic emojis
+    // Helper to draw clean vector trees (overlapping soft green circles)
     const createVectorTree = (x: number, y: number) => {
       const treeGrp = this.add.graphics();
       // Trunk (brown)
@@ -143,7 +132,7 @@ export class MapScene extends Phaser.Scene {
       createVectorTree(c.x, c.y);
     });
 
-    // Spawn stylized concrete wall barrier panels (pure white with soft grey outline - matching architectural diagram)
+    // Spawn stylized concrete wall barrier panels (pure white with soft grey outline)
     const wallCoords = [
       { x: 380, y: 230, w: 120, h: 10 },
       { x: 740, y: 450, w: 160, h: 10 },
@@ -160,29 +149,13 @@ export class MapScene extends Phaser.Scene {
       body.setSize(w.w, w.h).setOffset(-w.w / 2, -w.h / 2);
     });
 
-    // 2. PLAYER CHARACTER (Clean warm-teal node)
-    const playerGraphics = this.make.graphics({ x: 0, y: 0 });
-    playerGraphics.fillStyle(0x7c9a8f, 1);
-    playerGraphics.fillCircle(12, 12, 10);
-    playerGraphics.lineStyle(2, 0xffffff, 1);
-    playerGraphics.strokeCircle(12, 12, 10);
-    playerGraphics.generateTexture('player_texture', 24, 24);
-    playerGraphics.destroy();
-
-    this.player = this.physics.add.sprite(100, mapHeight / 2 + 10, 'player_texture');
+    // 2. PLAYER CHARACTER (Clean warm-teal Q-version avatar)
+    this.player = this.physics.add.sprite(100, mapHeight / 2 + 10, 'player');
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(20, 20);
-
-    // Simple Emoji label floating above player's head
-    const playerHead = this.add.text(this.player.x, this.player.y - 20, '🧐', { font: '14px Arial' }).setOrigin(0.5);
+    this.player.body.setSize(24, 24);
     
     // 3. COLLISION RULES
     this.physics.add.collider(this.player, obstacles);
-
-    // Update floating head position
-    this.events.on('update', () => {
-      playerHead.setPosition(this.player.x, this.player.y - 20);
-    });
 
     // 4. KEYBOARD CONFIG
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -204,16 +177,15 @@ export class MapScene extends Phaser.Scene {
     this.questZones = this.physics.add.staticGroup();
     this.npcEntities = this.physics.add.staticGroup();
 
-    // Spawn 3 Quest zones along Greenway Spine (Soft pastel colors)
+    // Spawn 3 Quest zones along Greenway Spine (Soft pastel colors, using the custom signpost quest_marker texture)
     const questDataList = [
-      { id: 1, x: 300, y: mapHeight / 2 + 10, name: '⚔️ 任務 1：通勤衝突' },
-      { id: 2, x: 700, y: mapHeight / 2 + 10, name: '⚔️ 任務 2：商住噪音' },
-      { id: 3, x: 1100, y: mapHeight / 2 + 10, name: '⚔️ 任務 3：生態照明' }
+      { id: 1, x: 300, y: mapHeight / 2 + 10, name: '任務 1：通勤衝突' },
+      { id: 2, x: 700, y: mapHeight / 2 + 10, name: '任務 2：商住噪音' },
+      { id: 3, x: 1100, y: mapHeight / 2 + 10, name: '任務 3：生態照明' }
     ];
 
     questDataList.forEach(q => {
-      // Draw a clean target indicator
-      const qMarker = this.add.text(q.x, q.y - 12, '⚔️', { font: '26px Arial' }).setOrigin(0.5);
+      const qMarker = this.add.sprite(q.x, q.y - 12, 'quest_marker');
       qMarker.setData('type', 'quest');
       qMarker.setData('id', q.id);
       this.questZones.add(qMarker);
@@ -224,36 +196,33 @@ export class MapScene extends Phaser.Scene {
 
     // Spawn 6 NPCs representing stakeholders
     const npcCoordsList = [
-      { id: 10, x: 180, y: 240, em: '👵', label: '居民代表' },
-      { id: 11, x: 500, y: 460, em: '🏪', label: '商家代表' },
-      { id: 12, x: 340, y: 390, em: '🚲', label: '通勤族' },
-      { id: 13, x: 860, y: 220, em: '🌿', label: '生態學者' },
-      { id: 14, x: 660, y: 460, em: '🎸', label: '青年樂手' },
-      { id: 15, x: 1060, y: 390, em: '🗣️', label: '抱怨老張' }
+      { id: 10, x: 180, y: 240, label: '居民代表' },
+      { id: 11, x: 500, y: 460, label: '商家代表' },
+      { id: 12, x: 340, y: 390, label: '通勤族' },
+      { id: 13, x: 860, y: 220, label: '生態學者' },
+      { id: 14, x: 660, y: 460, label: '青年樂手' },
+      { id: 15, x: 1060, y: 390, label: '抱怨老張' }
     ];
 
+    const npcTextureMap: { [key: number]: string } = {
+      10: 'npc_resident',
+      11: 'npc_merchant',
+      12: 'npc_commuter',
+      13: 'npc_ecology',
+      14: 'npc_youth',
+      15: 'npc_rioter'
+    };
+
     npcCoordsList.forEach(n => {
-      // Pedestal behind NPC
-      const ped = this.add.graphics();
-      ped.fillStyle(0xffffff, 1);
-      ped.lineStyle(1, 0x7c9a8f, 0.3);
-      ped.fillCircle(n.x, n.y + 2, 16);
-      ped.strokeCircle(n.x, n.y + 2, 16);
-      this.npcEntities.add(ped);
-      
-      const body = ped.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(24, 24).setOffset(-12, -12);
+      const tex = npcTextureMap[n.id] || 'player';
+      const npcSprite = this.add.sprite(n.x, n.y, tex);
+      npcSprite.setData('type', 'npc');
+      npcSprite.setData('id', n.id);
+      npcSprite.setData('label', n.label);
+      this.npcEntities.add(npcSprite);
 
-      const npcText = this.add.text(n.x, n.y, n.em, { font: '22px Arial' }).setOrigin(0.5);
-      npcText.setData('type', 'npc');
-      npcText.setData('id', n.id);
-      npcText.setData('label', n.label);
-      ped.setData('type', 'npc');
-      ped.setData('id', n.id);
-      ped.setData('label', n.label);
-
-      // Label
-      this.add.text(n.x, n.y + 22, n.label, { font: '8px "Noto Sans TC", sans-serif', color: '#5c6b63' }).setOrigin(0.5);
+      // Label below NPC
+      this.add.text(n.x, n.y + 28, n.label, { font: 'bold 9px "Noto Sans TC", sans-serif', color: '#5c6b63' }).setOrigin(0.5);
     });
 
     // 6. PROMPT POPUP
@@ -339,7 +308,7 @@ export class MapScene extends Phaser.Scene {
     // Set interactive prompt position and text (Clean green theme)
     this.promptTextObj.setText(
       type === 'quest'
-        ? `▶ 按【 E 】鍵啟動公共空間協商 ⚔`
+        ? `▶ 按【 E 】鍵啟動公共空間協商`
         : `▶ 按【 E 】鍵與【${obj.getData('label')}】對話 💬`
     );
     this.promptTextObj.setPosition(this.cameras.main.width / 2, this.cameras.main.height - 110);
@@ -371,7 +340,7 @@ export class MapScene extends Phaser.Scene {
         12: '🚲 通勤族：「我們只希望自行車動線清楚，別被大廣場或亂切的步道擋住，安全通過是最高守則！」',
         13: '🌿 生態學者：「自然是台南的靈魂。請守護原生喬木林帶，夜間降低眩光，鳥兒和昆蟲需要黑暗棲地！」',
         14: '🎸 青年樂手：「我們希望有不插電吉他野台和滑板聚集空間，讓古都有更多朝氣與創意的舞台！」',
-        15: '🗣️ 抱怨老張：「哼！做什麼建設都是白花錢，治安變差、房價下跌都是那些大樹 and 沒燈造成的啦！」'
+        15: '🗣️ 抱怨老張：「哼！做什麼建設都是白花錢，治安變差、房價下跌都是那些大樹和沒燈造成的啦！」'
       };
       this.openNPCBriefDialog(dialogsMap[npcId] || '「你好，協商官！」');
     }
@@ -420,6 +389,18 @@ export class MapScene extends Phaser.Scene {
     dim.setInteractive().on('pointerdown', () => this.closeDialogue());
   }
 
+  // Parse avatar emoji text to dynamic texture keys
+  private getTextureKeyFromAvatar(avatar: string): string {
+    if (avatar.includes('🚴') || avatar.includes('commuter')) return 'npc_commuter';
+    if (avatar.includes('👮') || avatar.includes('antagonist_1')) return 'npc_antagonist_1';
+    if (avatar.includes('☕') || avatar.includes('merchant')) return 'npc_merchant';
+    if (avatar.includes('🎸') || avatar.includes('antagonist_2')) return 'npc_antagonist_2';
+    if (avatar.includes('🦉') || avatar.includes('ecology')) return 'npc_ecology';
+    if (avatar.includes('🗣️') || avatar.includes('rioter') || avatar.includes('conflict')) return 'npc_rioter';
+    if (avatar.includes('👵') || avatar.includes('resident')) return 'npc_resident';
+    return 'player';
+  }
+
   // ANIMATED STAKEHOLDER CLASH/ARGUMENT ANIMATION
   private playClashAnimation(quest: QuestData, onComplete: () => void) {
     this.isClashActive = true;
@@ -461,12 +442,13 @@ export class MapScene extends Phaser.Scene {
     pBg.fillRoundedRect(-140, -100, 260, 200, 10);
     pBg.strokeRoundedRect(-140, -100, 260, 200, 10);
     
-    const pAvatar = this.add.text(-10, -50, quest.npcAvatar, { font: '48px Arial' }).setOrigin(0.5);
-    const pTitle = this.add.text(-10, -5, quest.npcName, {
+    const pTex = this.getTextureKeyFromAvatar(quest.npcAvatar);
+    const pAvatar = this.add.sprite(-10, -42, pTex).setScale(1.4);
+    const pTitle = this.add.text(-10, 10, quest.npcName, {
       font: 'bold 15px "Noto Sans TC", sans-serif',
       color: '#2c3e35'
     }).setOrigin(0.5);
-    const pDesc = this.add.text(-10, 40, quest.npcQuote, {
+    const pDesc = this.add.text(-10, 52, quest.npcQuote, {
       font: 'italic 11px "Noto Sans TC", sans-serif',
       color: '#5c6b63',
       wordWrap: { width: 220, useAdvancedWrap: true },
@@ -483,12 +465,13 @@ export class MapScene extends Phaser.Scene {
     oBg.fillRoundedRect(-120, -100, 260, 200, 10);
     oBg.strokeRoundedRect(-120, -100, 260, 200, 10);
 
-    const oAvatar = this.add.text(10, -50, quest.conflictAvatar, { font: '48px Arial' }).setOrigin(0.5);
-    const oTitle = this.add.text(10, -5, `${quest.conflictName}`, {
+    const oTex = this.getTextureKeyFromAvatar(quest.conflictAvatar);
+    const oAvatar = this.add.sprite(10, -42, oTex).setScale(1.4);
+    const oTitle = this.add.text(10, 10, `${quest.conflictName}`, {
       font: 'bold 15px "Noto Sans TC", sans-serif',
       color: '#2c3e35'
     }).setOrigin(0.5);
-    const oDesc = this.add.text(10, 40, quest.conflictQuote, {
+    const oDesc = this.add.text(10, 52, quest.conflictQuote, {
       font: 'italic 11px "Noto Sans TC", sans-serif',
       color: '#5c6b63',
       wordWrap: { width: 220, useAdvancedWrap: true },
@@ -530,23 +513,22 @@ export class MapScene extends Phaser.Scene {
           ease: 'Sine.easeInOut'
         });
 
-        // Trigger anger particle bursts
+        // Trigger custom anger particle bursts
         const particleTimer = this.time.addEvent({
           delay: 200,
           callback: () => {
             const rx = width / 2 + Phaser.Math.Between(-60, 60);
             const ry = height / 2 - 60 + Phaser.Math.Between(-80, 80);
-            const particleEmoji = ['💢', '💥', '💬', '⚡', '🔥'][Phaser.Math.Between(0, 4)];
-            const partText = this.add.text(rx, ry, particleEmoji, { font: '22px Arial' }).setOrigin(0.5).setScrollFactor(0).setDepth(36);
-            clashContainer.add(partText);
+            const part = this.add.sprite(rx, ry, 'anger_particle').setScrollFactor(0).setDepth(36);
+            clashContainer.add(part);
 
             this.tweens.add({
-              targets: partText,
+              targets: part,
               y: ry - 40,
-              scale: 1.5,
+              scale: 2.2,
               alpha: 0,
-              duration: 400,
-              onComplete: () => partText.destroy()
+              duration: 500,
+              onComplete: () => part.destroy()
             });
           },
           repeat: 12
@@ -885,7 +867,7 @@ export class MapScene extends Phaser.Scene {
       repeat: -1
     });
 
-    this.add.text(width / 2, height / 2 - 30, '🌟 前往成果發表發表會 🌟', {
+    this.add.text(width / 2, height / 2 - 30, '前往成果發表會 🌟', {
       font: 'bold 11px "Noto Sans TC", sans-serif',
       color: '#ffffff',
       backgroundColor: '#7c9a8f',

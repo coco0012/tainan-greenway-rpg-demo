@@ -10,10 +10,12 @@ export const config: any = {
   height: 540,
   parent: 'phaser-game-canvas',
   backgroundColor: '#f4f3ef',
-  antialias: true,
-  antialiasGL: true,
-  roundPixels: true,
-  resolution: window.devicePixelRatio || 1,
+  render: {
+    antialias: false,
+    antialiasGL: false,
+    roundPixels: true,
+    resolution: window.devicePixelRatio || 1
+  },
   physics: {
     default: 'arcade',
     arcade: {

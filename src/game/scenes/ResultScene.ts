@@ -156,18 +156,41 @@ export class ResultScene extends Phaser.Scene {
     // Draw green spine horizontal strip (Soft pastel greenway path)
     this.add.rectangle(width / 2, 195, width - 70, 50, 0xc2d6c4);
 
-    // Static elements in background
-    this.add.text(100, 140, '🏠', { font: '26px Arial' }).setOrigin(0.5).setAlpha(0.6);
-    this.add.text(280, 130, '🏪', { font: '24px Arial' }).setOrigin(0.5).setAlpha(0.6);
-    this.add.text(820, 140, '🌳', { font: '28px Arial' }).setOrigin(0.5).setAlpha(0.6);
-    this.add.text(700, 130, '🌲', { font: '24px Arial' }).setOrigin(0.5).setAlpha(0.6);
+    // Static vector elements in background instead of Emojis
+    this.add.sprite(100, 140, 'house').setScale(0.7).setAlpha(0.65);
+    this.add.sprite(280, 130, 'shop').setScale(0.7).setAlpha(0.65);
+    
+    // Vector trees in schematic background
+    const bgTree = this.add.graphics();
+    bgTree.fillStyle(0x8caf97, 0.6);
+    bgTree.fillCircle(820, 135, 14);
+    bgTree.fillStyle(0xa3c1ad, 0.6);
+    bgTree.fillCircle(808, 142, 11);
+    bgTree.fillStyle(0x7c9a8f, 0.6);
+    bgTree.fillCircle(830, 142, 11);
+    
+    bgTree.fillStyle(0x8caf97, 0.6);
+    bgTree.fillCircle(700, 130, 14);
+    bgTree.fillStyle(0xa3c1ad, 0.6);
+    bgTree.fillCircle(688, 137, 11);
 
     this.add.text(width / 2, 310, '💡 滑鼠移到市民頭像上，聽聽他們對最終方案的反應對白！', {
       font: 'bold 11px "Noto Sans TC", sans-serif',
       color: '#5c6b63'
     }).setOrigin(0.5);
 
-    // Render interactive citizens
+    const citizenTextureMap: { [key: string]: string } = {
+      'resident': 'npc_resident',
+      'merchant': 'npc_merchant',
+      'commuter': 'npc_commuter',
+      'ecology': 'npc_ecology',
+      'elderly': 'npc_resident',
+      'child': 'player',
+      'youth': 'npc_youth',
+      'rioter': 'npc_rioter'
+    };
+
+    // Render interactive citizens (using vector textures instead of system emojis)
     CITIZENS.forEach(cit => {
       // Ring color depending on their stats score
       let colorVal = 0x7c9a8f;
@@ -184,27 +207,28 @@ export class ResultScene extends Phaser.Scene {
 
       // Outer ring graphics
       const ring = this.add.graphics();
-      ring.lineStyle(2.5, colorVal, 0.7);
-      ring.strokeCircle(cit.x, cit.y, 22);
+      ring.lineStyle(2.5, colorVal, 0.8);
+      ring.strokeCircle(cit.x, cit.y, 24);
 
-      // Emoji Avatar
-      const av = this.add.text(cit.x, cit.y, cit.avatar, { font: '24px Arial' })
-        .setOrigin(0.5)
+      // Vector avatar sprite
+      const tex = citizenTextureMap[cit.id] || 'player';
+      const av = this.add.sprite(cit.x, cit.y, tex)
+        .setScale(0.85)
         .setInteractive({ useHandCursor: true });
 
       // Hover name tag
-      this.add.text(cit.x, cit.y + 32, cit.name, {
+      this.add.text(cit.x, cit.y + 34, cit.name, {
         font: 'bold 9px "Noto Sans TC", sans-serif',
         color: '#2f3e46'
       }).setOrigin(0.5);
 
       av.on('pointerover', () => {
-        av.setScale(1.2);
+        av.setScale(1.05);
         this.showSpeechBubble(cit);
       });
 
       av.on('pointerout', () => {
-        av.setScale(1);
+        av.setScale(0.85);
         this.hideSpeechBubble();
       });
     });
@@ -254,6 +278,12 @@ export class ResultScene extends Phaser.Scene {
     }
   }
 
+  private getMedalTextureKey(title: string): string {
+    if (title === '城市共感設計師' || title === '衝突調停者') return 'medal_gold';
+    if (title === '綠色守護者' || title === '活力策展人' || title === '流線規劃師') return 'medal_silver';
+    return 'medal_bronze';
+  }
+
   private drawAwardPanel(width: number) {
     // Left Box: Badge & Title (White Card)
     const badgeBox = this.add.graphics();
@@ -262,7 +292,10 @@ export class ResultScene extends Phaser.Scene {
     badgeBox.fillRoundedRect(35, 345, 280, 175, 8);
     badgeBox.strokeRoundedRect(35, 345, 280, 175, 8);
 
-    const medal = this.add.text(175, 400, this.awardData.badge, { font: '48px Arial' }).setOrigin(0.5);
+    // Render the custom gold/silver/bronze vector medal texture instead of standard text emojis
+    const medalKey = this.getMedalTextureKey(this.awardData.title);
+    const medal = this.add.sprite(175, 400, medalKey).setScale(1.2).setOrigin(0.5);
+    
     // Spin the medal slightly
     this.tweens.add({
       targets: medal,
